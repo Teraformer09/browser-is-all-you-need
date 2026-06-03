@@ -30,3 +30,4 @@ visual_artifacts/
 # Local dependency checkouts
 .deps/
 .android/
+outputs/

@@ -139,6 +139,23 @@ python3 -B -m android_adk_rl_env.rl_train --episodes 50 --eval-episodes 5 --max-
 python3 -B -m android_adk_rl_env.rl_benchmark --checkpoint artifacts/rl/dummy_apk_policy.json --episodes 10 --output artifacts/rl/dummy_apk_rl_benchmark.jsonl --compact
 ```
 
+
+## Prime CLI / Verifiers Environment
+
+This repo now exposes the official Prime/verifiers entry point:
+
+```python
+from prime_android_adk_rl_env import load_environment
+```
+
+Run a local Prime CLI eval against the real dummy APK:
+
+```bash
+./scripts/run_prime_eval_android_adk.sh
+```
+
+The verified Prime eval result used `gpt-4o-mini` through `https://api.openai.com/v1` and returned reward `1.0` with `_apk_reward: 1.0`. See [docs/prime_cli_usage.md](docs/prime_cli_usage.md) for `prime eval run` and `prime env push` commands.
+
 ## Project Layout
 
 ```text
