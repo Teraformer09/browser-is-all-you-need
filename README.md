@@ -153,3 +153,22 @@ python3 -B -m android_adk_rl_env.rl_train --episodes 1 --eval-episodes 1 --max-s
 ```
 
 Real APK RL is slow because every step uses ADB and UIAutomator. One episode can take tens of seconds depending on the device/emulator.
+
+
+## AndroidWorld Backend
+
+This repo has an optional AndroidWorld backend on the `androidworld-integration` branch. It maps repo actions to AndroidWorld `JSONAction`s and keeps the same dummy APK SharedPreferences reward.
+
+Check availability:
+
+```bash
+python3 -B -m android_adk_rl_env.android_world_runner --status
+```
+
+Run with AndroidWorld when installed:
+
+```bash
+python3 -B -m android_adk_rl_env.android_world_runner --backend android_world --policy scripted --episodes 1 --install-apk --compact
+```
+
+See [docs/android_world_integration.md](docs/android_world_integration.md).

@@ -1,0 +1,169 @@
+import unittest
+from dataclasses import dataclass
+
+from android_adk_rl_env.android_world_bridge import AndroidWorldDummyApkEnv, android_world_status
+from android_adk_rl_env.apk_env import ApkAction
+from android_adk_rl_env.tasks.dummy_apk import DummyApkFormSearchTask
+from android_adk_rl_env.training.rollout import run_rollouts
+from android_adk_rl_env.policies.scripted_policy import ScriptedApkPolicy
+
+
+@dataclass
+class FakeBox:
+    x_min: int
+    y_min: int
+    x_max: int
+    y_max: int
+
+
+@dataclass
+class FakeElement:
+    resource_id: str
+    text: str = ""
+    resource_name: str | None = None
+    class_name: str = "android.view.View"
+    content_description: str = ""
+    is_focused: bool = False
+    is_clickable: bool = True
+    is_editable: bool = False
+    bbox_pixels: FakeBox | None = None
+
+
+@dataclass
+class FakeState:
+    ui_elements: list[FakeElement]
+
+
+@dataclass
+class FakeJsonAction:
+    action_type: str
+    index: int | None = None
+    text: str | None = None
+    clear_text: bool | None = None
+    goal_status: str | None = None
+
+
+class FakeJsonActionModule:
+    CLICK = "click"
+    INPUT_TEXT = "input_text"
+    NAVIGATE_BACK = "navigate_back"
+    WAIT = "wait"
+    STATUS = "status"
+    JSONAction = FakeJsonAction
+
+
+class FakeAndroidWorldEnv:
+    def __init__(self, task: DummyApkFormSearchTask) -> None:
+        self.task = task
+        self.executed = []
+        self.elements = [
+            FakeElement(f"{task.package}:id/search_input", is_editable=True, bbox_pixels=FakeBox(0, 0, 100, 100)),
+            FakeElement(f"{task.package}:id/search_button", text="Search", bbox_pixels=FakeBox(0, 100, 100, 200)),
+            FakeElement(f"{task.package}:id/search_result", text="Search result: none"),
+            FakeElement(f"{task.package}:id/name_input", is_editable=True),
+            FakeElement(f"{task.package}:id/email_input", is_editable=True),
+            FakeElement(f"{task.package}:id/submit_button", text="Submit Form"),
+            FakeElement(f"{task.package}:id/status_text", text="Status: waiting"),
+        ]
+
+    def reset(self, go_home: bool = False) -> FakeState:
+        del go_home
+        return self.get_state()
+
+    def get_state(self, wait_to_stabilize: bool = False) -> FakeState:
+        del wait_to_stabilize
+        return FakeState(self.elements)
+
+    def execute_action(self, action: FakeJsonAction) -> None:
+        self.executed.append(action)
+
+    def close(self) -> None:
+        pass
+
+
+class FakeAdbDevice:
+    def __init__(self, task: DummyApkFormSearchTask) -> None:
+        self.task = task
+        self.query = ""
+        self.name = ""
+        self.email = ""
+        self.submitted = False
+
+    def wait_for_device(self) -> None:
+        pass
+
+    def clear_app_data(self) -> None:
+        self.query = ""
+        self.name = ""
+        self.email = ""
+        self.submitted = False
+
+    def launch_app(self) -> None:
+        pass
+
+    def read_shared_prefs(self) -> str:
+        submitted = "true" if self.submitted else "false"
+        return (
+            "<map>\n"
+            f"<boolean name=\"submitted\" value=\"{submitted}\" />\n"
+            f"<string name=\"query\">{self.query}</string>\n"
+            f"<string name=\"name\">{self.name}</string>\n"
+            f"<string name=\"email\">{self.email}</string>\n"
+            "</map>\n"
+        )
+
+
+
+class TestAndroidWorldBridge(unittest.TestCase):
+    def make_env(self) -> AndroidWorldDummyApkEnv:
+        task = DummyApkFormSearchTask(max_steps=8)
+        android_env = FakeAndroidWorldEnv(task)
+        adb = FakeAdbDevice(task)
+        env = AndroidWorldDummyApkEnv(android_env=android_env, task=task, adb_device=adb, max_steps=8)
+        env._json_action_module = lambda: FakeJsonActionModule  # type: ignore[method-assign]
+        return env
+
+    def test_status_reports_missing_android_world_locally(self) -> None:
+        status = android_world_status()
+        self.assertFalse(status.installed)
+        self.assertIsNotNone(status.reason)
+
+    def test_bridge_maps_resource_to_android_world_json_action(self) -> None:
+        env = self.make_env()
+        env.reset()
+
+        result = env.step(ApkAction("input_resource", target="search_input", text="airport ride"))
+
+        self.assertEqual(result.info["backend"], "android_world")
+        executed = env.android_env.executed[-1]
+        self.assertEqual(executed.action_type, "input_text")
+        self.assertEqual(executed.index, 0)
+        self.assertEqual(executed.text, "airport ride")
+
+    def test_bridge_reports_missing_resource(self) -> None:
+        env = self.make_env()
+        env.reset()
+
+        result = env.step(ApkAction("click_resource", target="missing"))
+
+        self.assertTrue(result.info["invalid_action"])
+        self.assertIn("unsupported target", result.info["error"])
+
+    def test_bridge_rollout_uses_android_world_backend(self) -> None:
+        task = DummyApkFormSearchTask(max_steps=2)
+
+        def env_factory() -> AndroidWorldDummyApkEnv:
+            android_env = FakeAndroidWorldEnv(task)
+            adb = FakeAdbDevice(task)
+            env = AndroidWorldDummyApkEnv(android_env=android_env, task=task, adb_device=adb, max_steps=2)
+            env._json_action_module = lambda: FakeJsonActionModule  # type: ignore[method-assign]
+            return env
+
+        rollouts = run_rollouts(env_factory, lambda: ScriptedApkPolicy(task), episodes=1)
+
+        self.assertEqual(rollouts[0]["final_observation"]["backend"], "android_world")
+        self.assertEqual(rollouts[0]["steps"], 2)
+
+
+if __name__ == "__main__":
+    unittest.main()

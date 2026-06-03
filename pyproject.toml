@@ -12,6 +12,7 @@ android-adk-train = "android_adk_rl_env.train:main"
 android-adk-openai-finetune = "android_adk_rl_env.openai_finetune:main"
 android-adk-rl-train = "android_adk_rl_env.rl_train:main"
 android-adk-rl-benchmark = "android_adk_rl_env.rl_benchmark:main"
+android-adk-android-world = "android_adk_rl_env.android_world_runner:main"
 
 [build-system]
 requires = ["hatchling"]
