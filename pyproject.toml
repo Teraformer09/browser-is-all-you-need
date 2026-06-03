@@ -1,7 +1,7 @@
 [project]
 name = "prime-android-adk-rl-env"
 version = "0.1.0"
-description = "Runnable Android ADK-style RL environment scaffold with one AndroidWorld-inspired task."
+description = "Mobile Android APK/ADK RL environment with AndroidWorld, ADB, reward, and benchmark artifacts."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []

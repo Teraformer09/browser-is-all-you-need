@@ -2,129 +2,165 @@
 
 Last updated: 2026-06-03
 
-This branch adds an optional AndroidWorld backend for the dummy APK RL environment.
-
-AndroidWorld is an Android benchmark/environment for autonomous agents. Its README describes a live Android emulator setup, durable reward signals, and custom agents that subclass `EnvironmentInteractingAgent` and act through an `AndroidEnv` / `JSONAction` interface.
+This branch implements a real AndroidWorld backend for the dummy APK RL environment. It is designed for mobile Android APK/ADK-style environments where an agent acts on a live emulator and reward is computed from durable app state.
 
 ## What Is Implemented
 
 | File | Purpose |
 |---|---|
-| `android_adk_rl_env/android_world_bridge.py` | Optional bridge from this repo's `ApkAction` / reward API to AndroidWorld `AsyncEnv` and `JSONAction`. |
+| `scripts/install_android_world.sh` | Installs repo venv dependencies, AndroidWorld, Android SDK packages, emulator, API 33 system image, and repo-local AVD. |
+| `scripts/run_android_world_openai.sh` | Boots the AndroidWorld AVD with gRPC, builds/installs the dummy APK, runs one OpenAI model episode, and saves rollout/screenshot/video artifacts. |
+| `android_adk_rl_env/android_world_bridge.py` | Bridge from repo `ApkAction` / reward API to AndroidWorld `AsyncEnv` and `JSONAction`. |
 | `android_adk_rl_env/android_world_runner.py` | CLI runner with `--backend android_world` and `--backend adb`. |
-| `tests/test_android_world_bridge.py` | Fake AndroidWorld tests that verify action mapping and backend observations without installing AndroidWorld. |
+| `tests/test_android_world_bridge.py` | Fake AndroidWorld tests for action mapping and backend observations. |
 
-The bridge keeps reward validation in this repo:
+## Runtime Contract
 
 ```text
-AndroidWorld AsyncEnv executes action
-  -> dummy APK changes state
-  -> SharedPreferences is read through ADB
-  -> reward_from_prefs / shaped_reward_from_prefs grades the task
+OpenAI policy emits structured action
+  -> AndroidWorld executes JSONAction on emulator
+  -> dummy APK changes durable SharedPreferences state
+  -> ADB reads SharedPreferences
+  -> reward_from_prefs / shaped_reward_from_prefs grades task
+  -> rollout JSONL and summary JSON are written
 ```
 
-This means the AndroidWorld backend and the ADB backend use the same reward contract.
+The AndroidWorld backend and ADB backend use the same reward contract.
 
-## Install AndroidWorld
+## Install
 
-AndroidWorld is not vendored into this repo. Install it separately:
+Use the repo script; it installs the dependency stack into local paths instead of requiring a manual Android Studio setup:
 
 ```bash
-git clone https://github.com/google-research/android_world.git
-cd android_world
-pip install -r requirements.txt
-python setup.py install
+./scripts/install_android_world.sh
 ```
 
-AndroidWorld expects a live emulator. The upstream README recommends a Pixel 6 AVD with API 33 named `AndroidWorldAvd`, launched with a gRPC port:
+Defaults:
+
+```text
+SDK root: /data/Balram/android-sdk
+AVD home: .deps/android_avd
+AVD name: AndroidWorld_API_33
+System image: system-images;android-33;google_apis;x86_64
+```
+
+Environment overrides are supported:
 
 ```bash
-~/Android/Sdk/emulator/emulator -avd AndroidWorldAvd -no-snapshot -grpc 8554
+ANDROID_SDK_ROOT=/path/to/sdk ANDROID_WORLD_AVD_NAME=AndroidWorld_API_33 ./scripts/install_android_world.sh
 ```
 
-## Check Availability
+## Run Actual AndroidWorld + OpenAI
 
-From this repo:
+Put the key in `.env`:
 
 ```bash
-python3 -B -m android_adk_rl_env.android_world_runner --status
+OPENAI_API_KEY=...
 ```
 
-Example when missing:
+Run:
+
+```bash
+./scripts/run_android_world_openai.sh
+```
+
+The script uses:
+
+```text
+backend: android_world
+policy: openai
+model: gpt-4o-mini by default
+console port: 5556
+ADB serial: emulator-5556
+gRPC port: 8554
+```
+
+Artifacts are written to:
+
+```text
+artifacts/android_world_openai_run/
+  rollout.jsonl
+  summary.json
+  final_screen.png
+  emulator_run.mp4
+  result.json
+  emulator.log
+  screenrecord.log
+```
+
+## Verified Result
+
+The latest verified run completed with:
 
 ```json
-{"installed": false, "reason": "ModuleNotFoundError: No module named 'android_world'"}
+{
+  "run_status": 0,
+  "backend": "android_world",
+  "policy": "openai",
+  "model": "gpt-4o-mini",
+  "success_rate": 1.0,
+  "final_reward": 1.0,
+  "steps": 9
+}
 ```
 
-## Run With AndroidWorld Backend
+The final reward components were all true:
 
-Build/install the dummy APK, then run one scripted rollout through AndroidWorld:
-
-```bash
-python3 -B -m android_adk_rl_env.android_world_runner   --backend android_world   --policy scripted   --episodes 1   --install-apk   --output artifacts/android_world/scripted_rollout.jsonl   --compact
+```json
+{
+  "query": true,
+  "name": true,
+  "email": true,
+  "submitted": true
+}
 ```
 
-Use OpenAI as the policy while AndroidWorld executes Android actions:
+## Action Mapping
 
-```bash
-python3 -B -m android_adk_rl_env.android_world_runner   --backend android_world   --policy openai   --model gpt-4o-mini   --episodes 1   --output artifacts/android_world/openai_rollout.jsonl   --compact
-```
-
-The OpenAI key can be loaded from `.env` as `OPENAI_API_KEY=...`.
-
-## Fallback ADB Backend
-
-The same runner can still use the existing local ADB backend:
-
-```bash
-python3 -B -m android_adk_rl_env.android_world_runner   --backend adb   --policy scripted   --episodes 1   --output artifacts/android_world/adb_rollout.jsonl   --compact
-```
-
-## How Actions Are Mapped
-
-This repo action:
+Repo action:
 
 ```json
 {"action": "click_resource", "target": "submit_button", "text": null}
 ```
 
-is mapped to AndroidWorld:
+AndroidWorld action:
 
 ```python
 JSONAction(action_type=CLICK, index=<ui_element_index>)
 ```
 
-This repo action:
+Repo action:
 
 ```json
 {"action": "input_resource", "target": "name_input", "text": "Ada Lovelace"}
 ```
 
-is mapped to AndroidWorld:
+AndroidWorld action:
 
 ```python
 JSONAction(action_type=INPUT_TEXT, index=<ui_element_index>, text="Ada Lovelace", clear_text=True)
 ```
 
-The bridge finds the `index` by matching AndroidWorld UI elements against resource IDs like:
+The bridge accepts both local IDs and full Android resource IDs, for example:
 
 ```text
+name_input
 com.primeintellect.dummyrl:id/name_input
 ```
 
-## Current Limitations
+## Prime Intellect Fit
 
-This branch is an integration layer, not a vendored AndroidWorld fork.
-
-Known constraints:
+The current artifact set is Prime Intellect-style rather than a hardcoded external schema:
 
 ```text
-AndroidWorld must be installed separately.
-The AndroidWorld emulator must be launched with its expected gRPC setup.
-The dummy APK still provides reward through SharedPreferences.
-The local RL-only trainer still trains a repo-local policy, not AndroidWorld's built-in agents.
+rollout JSONL: per-episode transitions, observations, actions, rewards
+summary JSON: benchmark status, reward, success, artifact paths
+media: final screenshot and emulator video
+logs: emulator and screenrecord diagnostics
 ```
 
-## Sources
+If Prime Intellect sends a stricter manifest/schema, keep the environment and AndroidWorld bridge as-is and adapt only the output serializer/manifest layer.
+
+## Source
 
 AndroidWorld upstream repository: https://github.com/google-research/android_world
