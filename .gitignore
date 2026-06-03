@@ -1,0 +1,28 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Android/generated outputs
+dummy_android_app/build/
+dummy_android_app/debug.keystore
+*.keystore
+*.idsig
+
+# Runtime artifacts
+artifacts/
+visual_artifacts/
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/

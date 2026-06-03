@@ -1,0 +1,6 @@
+environment = "local/android-adk-create-note"
+task = "create_note"
+policy = "scripted"
+num_examples = 1
+rollouts_per_example = 1
+max_steps = 8
