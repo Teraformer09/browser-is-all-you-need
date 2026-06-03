@@ -25,13 +25,23 @@ class UiNode:
 class AdbDevice:
     """Small ADB/UIAutomator controller used by the APK-backed task."""
 
-    def __init__(self, adb_path: str = "adb", package: str = "com.primeintellect.dummyrl") -> None:
+    def __init__(
+        self,
+        adb_path: str = "adb",
+        package: str = "com.primeintellect.dummyrl",
+        serial: str | None = None,
+    ) -> None:
         self.adb_path = adb_path
         self.package = package
+        self.serial = serial
 
     def adb(self, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+        command = [self.adb_path]
+        if self.serial:
+            command.extend(["-s", self.serial])
+        command.extend(args)
         return subprocess.run(
-            [self.adb_path, *args],
+            command,
             check=check,
             text=True,
             stdout=subprocess.PIPE,

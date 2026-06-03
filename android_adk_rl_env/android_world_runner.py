@@ -18,6 +18,7 @@ from android_adk_rl_env.android_world_bridge import (
     android_world_status,
     create_native_android_world_env,
 )
+from android_adk_rl_env.adb_device import AdbDevice
 from android_adk_rl_env.apk_env import DummyApkEnv
 from android_adk_rl_env.policies.openai_policy import OpenAIActionPolicy
 from android_adk_rl_env.policies.scripted_policy import ScriptedApkPolicy
@@ -39,6 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--console-port", type=int, default=5554)
     parser.add_argument("--grpc-port", type=int, default=8554)
     parser.add_argument("--adb-path", default="adb")
+    parser.add_argument("--adb-serial")
     parser.add_argument("--status", action="store_true", help="Print AndroidWorld availability and exit.")
     parser.add_argument("--compact", action="store_true")
     return parser
@@ -63,13 +65,19 @@ def main() -> None:
             return create_native_android_world_env(
                 console_port=args.console_port,
                 adb_path=args.adb_path,
+                adb_serial=args.adb_serial,
                 grpc_port=args.grpc_port,
                 task=task,
                 max_steps=args.max_steps,
                 shaped_rewards=not args.sparse_reward,
                 wait_to_stabilize=args.wait_to_stabilize,
             )
-        return DummyApkEnv(task=task, max_steps=args.max_steps, shaped_rewards=not args.sparse_reward)
+        return DummyApkEnv(
+            task=task,
+            device=AdbDevice(adb_path=args.adb_path, package=task.package, serial=args.adb_serial),
+            max_steps=args.max_steps,
+            shaped_rewards=not args.sparse_reward,
+        )
 
     def policy_factory() -> Any:
         if args.policy == "scripted":

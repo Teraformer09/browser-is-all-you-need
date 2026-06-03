@@ -20,7 +20,15 @@ Allowed actions:
 - click_resource: requires target
 - press_back: no target or text
 - wait: no target or text
-- finish: use only when the goal is complete or impossible
+- finish: use only after final_reward is 1.0
+For Dummy RL App, follow this priority exactly:
+1. If reward_components.query is false, input expected_state.query into search_input.
+2. If search_input has the expected query and search_result is still none, click search_button.
+3. If reward_components.name is false, input expected_state.name into name_input.
+4. If reward_components.email is false, input expected_state.email into email_input.
+5. If reward_components.submitted is false after query/name/email are filled, click submit_button.
+6. Use finish only when final_reward is 1.0.
+If last_error says finish was premature, choose the missing click/input action instead.
 Only use resource IDs visible in the observation. Return JSON only."""
 
 ACTION_SCHEMA: dict[str, Any] = {
@@ -96,15 +104,21 @@ class OpenAIActionPolicy:
         return ApkAction.from_dict(action)
 
     def _compact_observation(self, observation: dict[str, Any]) -> dict[str, Any]:
+        reward_components = observation.get("reward_components") or {}
+        ui = observation.get("ui", [])
         return {
             "goal": observation.get("goal"),
             "steps": observation.get("steps"),
             "max_steps": observation.get("max_steps"),
-            "ui": observation.get("ui", []),
+            "valid_targets": [node.get("id") for node in ui if node.get("id")],
+            "missing_reward_components": [
+                name for name, passed in reward_components.items() if not passed
+            ],
+            "ui": ui,
             "last_action": observation.get("last_action"),
             "last_error": observation.get("last_error"),
             "expected_state": observation.get("expected_state"),
-            "reward_components": observation.get("reward_components"),
+            "reward_components": reward_components,
             "final_reward": observation.get("final_reward"),
         }
 

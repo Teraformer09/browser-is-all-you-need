@@ -73,6 +73,7 @@ class DummyApkEnv:
             )
 
         action = raw_action if isinstance(raw_action, ApkAction) else ApkAction.from_dict(raw_action)
+        action = self._normalize_action(action)
         self.steps += 1
         self.last_action = action.to_dict()
         self.last_error = self._validate(action)
@@ -86,11 +87,7 @@ class DummyApkEnv:
         observation = self.observe()
         final_reward = observation["final_reward"]
         reward = observation["reward"]
-        self.done = (
-            final_reward >= 1.0
-            or self.steps >= self.max_steps
-            or action.action == "finish"
-        )
+        self.done = final_reward >= 1.0 or self.steps >= self.max_steps
         observation["done"] = self.done
 
         return StepResult(
@@ -131,6 +128,12 @@ class DummyApkEnv:
             "shared_prefs_present": bool(prefs_xml.strip()),
         }
 
+    def _normalize_action(self, action: ApkAction) -> ApkAction:
+        if action.target is None:
+            return action
+        target = action.target.rsplit("/", 1)[-1]
+        return ApkAction(action=action.action, target=target, text=action.text)
+
     def _validate(self, action: ApkAction) -> str | None:
         if action.action not in {"click_resource", "input_resource", "press_back", "wait", "finish"}:
             return f"unsupported action: {action.action}"
@@ -141,6 +144,8 @@ class DummyApkEnv:
             return "input_resource requires text"
         if action.action in {"press_back", "wait", "finish"} and action.target is not None:
             return f"{action.action} does not use target"
+        if action.action == "finish" and self.observe().get("final_reward", 0.0) < 1.0:
+            return "finish is only valid after final_reward is 1.0"
         return None
 
     def _execute(self, action: ApkAction) -> None:

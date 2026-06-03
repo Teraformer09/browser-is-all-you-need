@@ -102,6 +102,7 @@ class AndroidWorldDummyApkEnv:
             )
 
         action = raw_action if isinstance(raw_action, ApkAction) else ApkAction.from_dict(raw_action)
+        action = self._normalize_action(action)
         self.steps += 1
         self.last_action = action.to_dict()
         self.last_error = self._validate(action)
@@ -115,7 +116,7 @@ class AndroidWorldDummyApkEnv:
         observation = self.observe()
         final_reward = observation["final_reward"]
         reward = observation["reward"]
-        self.done = final_reward >= 1.0 or self.steps >= self.max_steps or action.action == "finish"
+        self.done = final_reward >= 1.0 or self.steps >= self.max_steps
         observation["done"] = self.done
 
         return StepResult(
@@ -162,6 +163,11 @@ class AndroidWorldDummyApkEnv:
         if callable(close):
             close()
 
+    def _normalize_action(self, action: ApkAction) -> ApkAction:
+        if action.target is None:
+            return action
+        return ApkAction(action=action.action, target=self._local_resource_name(action.target), text=action.text)
+
     def _validate(self, action: ApkAction) -> str | None:
         if action.action not in {"click_resource", "input_resource", "press_back", "wait", "finish"}:
             return f"unsupported action: {action.action}"
@@ -174,6 +180,8 @@ class AndroidWorldDummyApkEnv:
             return "input_resource requires text"
         if action.action in {"press_back", "wait", "finish"} and action.target is not None:
             return f"{action.action} does not use target"
+        if action.action == "finish" and self.observe().get("final_reward", 0.0) < 1.0:
+            return "finish is only valid after final_reward is 1.0"
         return None
 
     def _execute(self, action: ApkAction) -> None:
@@ -286,6 +294,7 @@ class AndroidWorldDummyApkEnv:
 def create_native_android_world_env(
     console_port: int = 5554,
     adb_path: str = "adb",
+    adb_serial: str | None = None,
     grpc_port: int = 8554,
     task: DummyApkFormSearchTask | None = None,
     max_steps: int | None = None,
@@ -307,7 +316,7 @@ def create_native_android_world_env(
     return AndroidWorldDummyApkEnv(
         android_env=android_env,
         task=task,
-        adb_device=AdbDevice(adb_path=adb_path, package=task.package),
+        adb_device=AdbDevice(adb_path=adb_path, package=task.package, serial=adb_serial),
         max_steps=max_steps,
         shaped_rewards=shaped_rewards,
         wait_to_stabilize=wait_to_stabilize,

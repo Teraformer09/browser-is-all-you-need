@@ -26,3 +26,7 @@ visual_artifacts/
 .DS_Store
 .idea/
 .vscode/
+
+# Local dependency checkouts
+.deps/
+.android/
