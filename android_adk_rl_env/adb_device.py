@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import time
@@ -35,6 +36,10 @@ class AdbDevice:
         self.package = package
         self.serial = serial
 
+    @property
+    def name(self) -> str:
+        return "adb"
+
     def adb(self, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
         command = [self.adb_path]
         if self.serial:
@@ -48,14 +53,37 @@ class AdbDevice:
             stderr=subprocess.PIPE,
         )
 
-    def wait_for_device(self) -> None:
+    def connect(self) -> None:
+        self.adb("start-server")
+        if self.serial and ":" in self.serial:
+            self.adb("connect", self.serial, check=False)
+
+    def wait_for_ready(self, timeout_s: int = 180) -> None:
+        self.connect()
         self.adb("wait-for-device")
+        deadline = time.time() + timeout_s
+        while time.time() < deadline:
+            booted = self.adb("shell", "getprop", "sys.boot_completed", check=False).stdout.strip()
+            if booted == "1":
+                return
+            time.sleep(1.0)
+        raise RuntimeError("timed out waiting for Android boot to complete")
+
+    def wait_for_device(self) -> None:
+        self.wait_for_ready()
+
+    def install_apk(self, apk_path: str) -> None:
+        self.wait_for_ready()
+        self.adb("install", "-r", apk_path)
+
+    def force_stop(self) -> None:
+        self.adb("shell", "am", "force-stop", self.package, check=False)
 
     def clear_app_data(self) -> None:
         self.adb("shell", "pm", "clear", self.package)
 
-    def launch_app(self) -> None:
-        self.adb(
+    def launch_app(self, episode_id: str | None = None, extras: dict[str, str | int | bool] | None = None) -> None:
+        command = [
             "shell",
             "am",
             "start",
@@ -63,8 +91,39 @@ class AdbDevice:
             "-S",
             "-n",
             f"{self.package}/.MainActivity",
-        )
+        ]
+        if episode_id:
+            command.extend(["--es", "episode_id", episode_id])
+        for key, value in (extras or {}).items():
+            if key == "episode_id" and episode_id:
+                continue
+            if isinstance(value, bool):
+                command.extend(["--ez", key, "true" if value else "false"])
+            elif isinstance(value, int):
+                command.extend(["--ei", key, str(value)])
+            else:
+                command.extend(["--es", key, str(value)])
+        self.adb(*command)
         time.sleep(1.0)
+
+    def reset_app(self, episode_id: str | None = None, extras: dict[str, str | int | bool] | None = None) -> None:
+        self.wait_for_ready()
+        self.force_stop()
+        self.clear_app_data()
+        self.launch_app(episode_id=episode_id, extras=extras)
+        self.wait_for_ui_ready()
+
+    def wait_for_ui_ready(self) -> None:
+        deadline = time.time() + 10.0
+        last_error: Exception | None = None
+        while time.time() < deadline:
+            try:
+                self.find_resource("status_text")
+                return
+            except Exception as exc:  # noqa: BLE001
+                last_error = exc
+                time.sleep(0.5)
+        raise RuntimeError(f"UI did not become ready: {last_error}")
 
     def click_resource(self, resource_name: str) -> None:
         node = self.find_resource(resource_name)
@@ -90,6 +149,18 @@ class AdbDevice:
 
     def press_back(self) -> None:
         self.adb("shell", "input", "keyevent", "KEYCODE_BACK")
+        time.sleep(0.3)
+
+    def press_home(self) -> None:
+        self.adb("shell", "input", "keyevent", "KEYCODE_HOME")
+        time.sleep(0.3)
+
+    def tap_coordinates(self, x: int, y: int) -> None:
+        self.adb("shell", "input", "tap", str(x), str(y))
+        time.sleep(0.3)
+
+    def swipe(self, x1: int, y1: int, x2: int, y2: int, duration_ms: int = 300) -> None:
+        self.adb("shell", "input", "swipe", str(x1), str(y1), str(x2), str(y2), str(duration_ms))
         time.sleep(0.3)
 
     def dump_ui(self) -> str:
@@ -134,6 +205,8 @@ class AdbDevice:
                     "bounds": list(node.bounds),
                     "center": list(node.center),
                     "focused": node.focused,
+                    "class_name": elem.attrib.get("class", ""),
+                    "clickable": elem.attrib.get("clickable") == "true",
                 }
             )
         return nodes
@@ -147,7 +220,22 @@ class AdbDevice:
             "shared_prefs/dummy_state.xml",
             check=False,
         )
-        return result.stdout
+        if result.stdout.strip():
+            return result.stdout
+        return self._debug_state_as_prefs()
+
+    def device_info(self) -> dict[str, str]:
+        return {
+            "backend": self.name,
+            "serial": self.serial or "",
+            "api_level": self.adb("shell", "getprop", "ro.build.version.sdk", check=False).stdout.strip(),
+            "build_fingerprint": self.adb("shell", "getprop", "ro.build.fingerprint", check=False).stdout.strip(),
+            "screen_size": self.adb("shell", "wm", "size", check=False).stdout.strip(),
+            "screen_density": self.adb("shell", "wm", "density", check=False).stdout.strip(),
+            "locale": self.adb("shell", "getprop", "persist.sys.locale", check=False).stdout.strip(),
+            "timezone": self.adb("shell", "getprop", "persist.sys.timezone", check=False).stdout.strip(),
+            "package": self.package,
+        }
 
     def _parse_bounds(self, raw: str) -> tuple[int, int, int, int]:
         match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", raw)
@@ -164,3 +252,26 @@ class AdbDevice:
             .replace("<", r"\<")
             .replace(">", r"\>")
         )
+
+    def _debug_state_as_prefs(self) -> str:
+        try:
+            node = self.find_resource("debug_state_text")
+        except Exception:
+            return ""
+        raw = (node.text or "").strip()
+        if not raw:
+            return ""
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            return ""
+        lines = ["<map>"]
+        for key, value in data.items():
+            if isinstance(value, bool):
+                lines.append(f'<boolean name="{key}" value="{"true" if value else "false"}" />')
+            elif isinstance(value, int):
+                lines.append(f'<long name="{key}" value="{value}" />')
+            else:
+                lines.append(f'<string name="{key}">{value}</string>')
+        lines.append("</map>")
+        return "\n".join(lines)

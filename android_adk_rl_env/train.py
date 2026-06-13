@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from android_adk_rl_env.apk_env import DummyApkEnv
+from android_adk_rl_env.envs.mobile_task_env import make_mobile_task_env
 from android_adk_rl_env.policies.openai_policy import OpenAIActionPolicy
 from android_adk_rl_env.policies.scripted_policy import ScriptedApkPolicy
 from android_adk_rl_env.tasks.dummy_apk import DummyApkFormSearchTask
@@ -19,6 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task", default="dummy_apk", choices=["dummy_apk"])
     parser.add_argument("--policy", default="scripted", choices=["scripted", "openai"])
+    parser.add_argument("--backend", default="adb", choices=["adb"])
     parser.add_argument("--episodes", type=int, default=1)
     parser.add_argument("--max-steps", type=int, default=10)
     parser.add_argument("--model", default="gpt-4o-mini")
@@ -39,7 +41,12 @@ def main() -> None:
     task = DummyApkFormSearchTask()
 
     def env_factory() -> DummyApkEnv:
-        return DummyApkEnv(task=task, max_steps=args.max_steps, shaped_rewards=not args.sparse_reward)
+        return make_mobile_task_env(
+            backend=args.backend,
+            task=task,
+            max_steps=args.max_steps,
+            shaped_rewards=not args.sparse_reward,
+        )
 
     def policy_factory() -> Any:
         if args.policy == "scripted":
@@ -52,6 +59,7 @@ def main() -> None:
     summary = {
         "task": args.task,
         "policy": args.policy,
+        "backend": args.backend,
         "episodes": len(rollouts),
         "successes": sum(1 for rollout in rollouts if rollout["success"]),
         "success_rate": sum(1 for rollout in rollouts if rollout["success"]) / len(rollouts) if rollouts else 0.0,

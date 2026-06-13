@@ -1,6 +1,39 @@
 # Prime Intellect Mobile Android ADK RL Environment
 
-This repo is set up for mobile Android APK/ADK-style RL and evaluation. The working reference app is a real dummy Android APK (`com.primeintellect.dummyrl`) controlled through ADB or AndroidWorld, with reward read from durable app state.
+This repo is a real Android APK/ADK-style RL and evaluation environment. The reference app is `com.primeintellect.dummyrl`, controlled through ADB or AndroidWorld, with reward read from durable app state.
+
+## Go-Live Branch Status
+
+The `go-live-e2e-hardening` branch adds the end-to-end rollout scaffold from the Mobile Android RL requirement document:
+
+- Episode-safe rewards with per-rollout `episode_id`.
+- Strict model action schema and non-crashing invalid-action handling.
+- Reset lifecycle for ADB rollouts.
+- Unit/integration/AndroidWorld/Prime test split.
+- 100 JSONL tasks across form and ride train/eval tasksets.
+- Prime package folder at `environments/mobile_android_rl/`.
+- Host-ADB Docker runner plus full AndroidWorld Docker image.
+- `make run` rollout execution with standardized artifacts and `replay.html`.
+- Safety policy enabled by default.
+
+Fastest local check:
+
+```bash
+make test
+```
+
+Real run:
+
+```bash
+make run
+```
+
+## Learning Path
+
+Start here if you are new to the project:
+
+- [Complete Tutorial](docs/COMPLETE_TUTORIAL.md): how to run, extend, and debug the environment.
+- [Architecture Guide](docs/ARCHITECTURE.md): runtime layers, device flow, rewards, artifacts, and extension points.
 
 The current end-to-end path is:
 
@@ -74,6 +107,29 @@ A verified run on this branch completed with:
   "final_reward": 1.0,
   "steps": 9
 }
+```
+
+## Docker Quick Start
+
+The repo includes a full Docker image and Compose runner for the Android SDK, emulator, AndroidWorld, Prime CLI, verifiers, and the dummy APK toolchain.
+
+Build and run the local test suite:
+
+```bash
+./scripts/docker_run.sh build
+./scripts/docker_run.sh tests
+```
+
+Run AndroidWorld + OpenAI inside Docker:
+
+```bash
+OPENAI_API_KEY=... ./scripts/docker_run.sh android-world-openai
+```
+
+Run the Prime/verifiers eval inside Docker:
+
+```bash
+OPENAI_API_KEY=... ./scripts/docker_run.sh prime-eval
 ```
 
 ## Dummy APK Task
@@ -154,7 +210,7 @@ Run a local Prime CLI eval against the real dummy APK:
 ./scripts/run_prime_eval_android_adk.sh
 ```
 
-The verified Prime eval result used `gpt-4o-mini` through `https://api.openai.com/v1` and returned reward `1.0` with `_apk_reward: 1.0`. See [docs/prime_cli_usage.md](docs/prime_cli_usage.md) for `prime eval run` and `prime env push` commands.
+The verified Prime eval result used `gpt-4o-mini` through `https://api.openai.com/v1` and returned reward `1.0` with `_apk_reward: 1.0`.
 
 ## Project Layout
 
@@ -174,9 +230,8 @@ scripts/
   build_dummy_apk.sh         # builds/signs APK without Gradle
   install_dummy_apk.sh       # installs/launches APK through ADB
 docs/
-  android_world_integration.md
-  app_guide.md
-  prime_intellect_mobile_android_adk.md
+  COMPLETE_TUTORIAL.md
+  ARCHITECTURE.md
 ```
 
 ## Notes

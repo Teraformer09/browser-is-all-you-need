@@ -5,7 +5,11 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_DIR="$ROOT_DIR/dummy_android_app"
 BUILD_DIR="$APP_DIR/build"
 SDK_ROOT="${ANDROID_SDK_ROOT:-/data/Balram/android-sdk}"
-BUILD_TOOLS="${ANDROID_BUILD_TOOLS:-/usr/lib/android-sdk/build-tools/34.0.0}"
+DEFAULT_BUILD_TOOLS="$SDK_ROOT/build-tools/34.0.0"
+if [[ ! -x "$DEFAULT_BUILD_TOOLS/aapt" && -x "/usr/lib/android-sdk/build-tools/34.0.0/aapt" ]]; then
+  DEFAULT_BUILD_TOOLS="/usr/lib/android-sdk/build-tools/34.0.0"
+fi
+BUILD_TOOLS="${ANDROID_BUILD_TOOLS:-$DEFAULT_BUILD_TOOLS}"
 ANDROID_JAR="${ANDROID_JAR:-$SDK_ROOT/platforms/android-34/android.jar}"
 KEYSTORE_CACHE="$APP_DIR/debug.keystore"
 

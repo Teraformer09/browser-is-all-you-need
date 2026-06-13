@@ -41,13 +41,15 @@ class CreateNoteTaskTest(unittest.TestCase):
         self.assertEqual(result.observation["last_error"], "no app open")
 
     def test_dummy_apk_reward_checks_durable_state(self) -> None:
-        task = DummyApkFormSearchTask()
+        task = DummyApkFormSearchTask(episode_id="ep_test")
         prefs = """<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
 <map>
+    <string name="episode_id">ep_test</string>
     <boolean name="submitted" value="true" />
     <string name="query">airport ride</string>
     <string name="name">Ada Lovelace</string>
     <string name="email">ada@example.com</string>
+    <string name="screen">submitted</string>
 </map>
 """
 

@@ -16,12 +16,12 @@ from android_adk_rl_env.tasks.dummy_apk import DummyApkFormSearchTask
 SYSTEM_PROMPT = """You control a real mobile Android APK through JSON actions.
 Return exactly one JSON object per turn. Do not include markdown.
 Allowed actions:
-{"action":"input_resource","target":"search_input","text":"airport ride"}
-{"action":"click_resource","target":"search_button","text":null}
-{"action":"input_resource","target":"name_input","text":"Ada Lovelace"}
-{"action":"input_resource","target":"email_input","text":"ada@example.com"}
-{"action":"click_resource","target":"submit_button","text":null}
-{"action":"finish","target":null,"text":null}
+{"type":"type_text","element_id":"search_input","text":"airport ride","x":null,"y":null,"x1":null,"y1":null,"x2":null,"y2":null,"duration_ms":null}
+{"type":"tap_element","element_id":"search_button","text":null,"x":null,"y":null,"x1":null,"y1":null,"x2":null,"y2":null,"duration_ms":null}
+{"type":"type_text","element_id":"name_input","text":"Ada Lovelace","x":null,"y":null,"x1":null,"y1":null,"x2":null,"y2":null,"duration_ms":null}
+{"type":"type_text","element_id":"email_input","text":"ada@example.com","x":null,"y":null,"x1":null,"y1":null,"x2":null,"y2":null,"duration_ms":null}
+{"type":"tap_element","element_id":"submit_button","text":null,"x":null,"y":null,"x1":null,"y1":null,"x2":null,"y2":null,"duration_ms":null}
+{"type":"finish","element_id":null,"text":null,"x":null,"y":null,"x1":null,"y1":null,"x2":null,"y2":null,"duration_ms":null}
 Use finish only after final_reward is 1.0.
 Priority: fill search_input, click search_button, fill name_input, fill email_input, click submit_button, then finish.
 """

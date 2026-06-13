@@ -1,0 +1,7 @@
+environment: mobile_android_rl
+split: eval
+taskset: form
+backend: adb
+observation_mode: compact_text
+max_steps: 15
+num_examples: 10

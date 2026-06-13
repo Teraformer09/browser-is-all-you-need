@@ -16,16 +16,19 @@ OPENAI_API_URL = "https://api.openai.com/v1/responses"
 SYSTEM_INSTRUCTIONS = """You control a real Android app through structured JSON actions.
 Choose exactly one next action that moves toward the goal.
 Allowed actions:
-- input_resource: requires target and text
-- click_resource: requires target
+- type_text: requires element_id and text
+- tap_element: requires element_id
+- tap_coordinates: requires x and y
 - press_back: no target or text
+- press_home: no target or text
+- swipe: requires x1, y1, x2, y2, duration_ms
 - wait: no target or text
 - finish: use only after final_reward is 1.0
 For Dummy RL App, follow this priority exactly:
-1. If reward_components.query is false, input expected_state.query into search_input.
+1. If reward_components.query is false, type expected_state.query into search_input.
 2. If search_input has the expected query and search_result is still none, click search_button.
-3. If reward_components.name is false, input expected_state.name into name_input.
-4. If reward_components.email is false, input expected_state.email into email_input.
+3. If reward_components.name is false, type expected_state.name into name_input.
+4. If reward_components.email is false, type expected_state.email into email_input.
 5. If reward_components.submitted is false after query/name/email are filled, click submit_button.
 6. Use finish only when final_reward is 1.0.
 If last_error says finish was premature, choose the missing click/input action instead.
@@ -35,11 +38,11 @@ ACTION_SCHEMA: dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
     "properties": {
-        "action": {
+        "type": {
             "type": "string",
-            "enum": ["click_resource", "input_resource", "press_back", "wait", "finish"],
+            "enum": ["tap_element", "tap_coordinates", "type_text", "press_back", "press_home", "swipe", "wait", "finish"],
         },
-        "target": {
+        "element_id": {
             "anyOf": [
                 {"type": "string"},
                 {"type": "null"},
@@ -51,8 +54,15 @@ ACTION_SCHEMA: dict[str, Any] = {
                 {"type": "null"},
             ]
         },
+        "x": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+        "y": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+        "x1": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+        "y1": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+        "x2": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+        "y2": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+        "duration_ms": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
     },
-    "required": ["action", "target", "text"],
+    "required": ["type", "element_id", "text", "x", "y", "x1", "y1", "x2", "y2", "duration_ms"],
 }
 
 
@@ -70,10 +80,12 @@ class OpenAIActionPolicy:
         self.api_key = api_key or get_openai_api_key()
         self.api_url = api_url
         self.timeout = timeout
+        self._last_metadata: dict[str, Any] = {}
         if not self.api_key:
             raise RuntimeError("OPENAI_API_KEY is required for --policy openai")
 
     def reset(self) -> None:
+        self._last_metadata = {}
         return None
 
     def act(self, observation: dict[str, Any]) -> ApkAction:
@@ -96,12 +108,16 @@ class OpenAIActionPolicy:
             },
         }
         response = self._post_json(payload)
+        self._last_metadata = self._response_metadata(response)
         action_json = self._extract_text(response)
         try:
             action = json.loads(action_json)
         except json.JSONDecodeError as exc:
             raise RuntimeError(f"OpenAI response was not valid action JSON: {action_json}") from exc
         return ApkAction.from_dict(action)
+
+    def get_last_metadata(self) -> dict[str, Any]:
+        return dict(self._last_metadata)
 
     def _compact_observation(self, observation: dict[str, Any]) -> dict[str, Any]:
         reward_components = observation.get("reward_components") or {}
@@ -150,3 +166,13 @@ class OpenAIActionPolicy:
                 if content.get("type") in {"output_text", "text"} and isinstance(content.get("text"), str):
                     return content["text"]
         raise RuntimeError(f"OpenAI response did not contain output text: {response}")
+
+    def _response_metadata(self, response: dict[str, Any]) -> dict[str, Any]:
+        usage = response.get("usage", {}) if isinstance(response.get("usage"), dict) else {}
+        return {
+            "model": response.get("model", self.model),
+            "response_id": response.get("id"),
+            "prompt_tokens": int(usage.get("input_tokens", 0) or 0),
+            "completion_tokens": int(usage.get("output_tokens", 0) or 0),
+            "reasoning_tokens": int(usage.get("reasoning_tokens", 0) or 0),
+        }

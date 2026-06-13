@@ -1,0 +1,17 @@
+services:
+  mobile-rl-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.runner
+    environment:
+      ADB_SERVER_SOCKET: tcp:host.docker.internal:5037
+      ANDROID_SERIAL: ${ANDROID_SERIAL:-emulator-5554}
+      ADB_SERIAL: ${ADB_SERIAL:-emulator-5554}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      PRIME_API_KEY: ${PRIME_API_KEY:-}
+      ROLLOUT_BACKEND: ${ROLLOUT_BACKEND:-adb}
+    volumes:
+      - ./artifacts:/workspace/artifacts
+      - ./visual_artifacts:/workspace/visual_artifacts
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

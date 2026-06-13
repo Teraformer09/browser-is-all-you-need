@@ -1,0 +1,34 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+
+# Python/cache
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Git/editor
+.git/
+.idea/
+.vscode/
+.DS_Store
+
+# Local dependency/runtime state
+.deps/
+.android/
+outputs/
+
+# Android/generated outputs
+dummy_android_app/build/
+dummy_android_app/debug.keystore
+*.keystore
+*.idsig
+
+# Runtime artifacts
+artifacts/
+visual_artifacts/

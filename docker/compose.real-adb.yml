@@ -1,0 +1,26 @@
+services:
+  android-emulator:
+    image: ${ANDROID_EMULATOR_IMAGE:-us-docker.pkg.dev/android-emulator-268719/images/30-google-x64:30.1.2}
+    devices:
+      - /dev/kvm:/dev/kvm
+    environment:
+      ADBKEY: ${ADBKEY:-}
+    ports:
+      - "5555:5555"
+      - "8554:8554"
+
+  rl-runner:
+    build:
+      context: ..
+      dockerfile: Dockerfile.runner
+    depends_on:
+      - android-emulator
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ADB_SERIAL: android-emulator:5555
+      ROLLOUT_BACKEND: adb
+    working_dir: /workspace
+    volumes:
+      - ../artifacts:/workspace/artifacts
+      - ..:/workspace
+    entrypoint: ["/workspace/docker/entrypoint.real-adb-runner.sh"]

@@ -1,7 +1,7 @@
 """Local RL-only trainer for the dummy APK environment.
 
 This trains a small stochastic policy from environment rewards. It does not use
-OpenAI fine-tuning, imitation learning, or demonstration labels.
+OpenAI fine-tuning, imitation learning, or scripted labels.
 """
 
 from __future__ import annotations

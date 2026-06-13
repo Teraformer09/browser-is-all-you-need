@@ -1,0 +1,35 @@
+FROM python:3.11-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV ANDROID_HOME=/opt/android-sdk
+ENV ANDROID_SDK_ROOT=/opt/android-sdk
+ENV ANDROID_BUILD_TOOLS=/opt/android-sdk/build-tools/35.0.0
+ENV PATH="${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/cmdline-tools/latest/bin:${PATH}"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl unzip git openjdk-17-jdk ca-certificates make build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p ${ANDROID_HOME}/cmdline-tools \
+    && curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/cmdline-tools.zip \
+    && unzip -q /tmp/cmdline-tools.zip -d /tmp/android-cmdline-tools \
+    && mv /tmp/android-cmdline-tools/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest \
+    && rm /tmp/cmdline-tools.zip \
+    && yes | sdkmanager --licenses >/dev/null || true \
+    && sdkmanager "platform-tools" "platforms;android-35" "platforms;android-34" "build-tools;35.0.0" "build-tools;34.0.0"
+
+WORKDIR /workspace
+
+COPY pyproject.toml README.md ./
+COPY android_adk_rl_env ./android_adk_rl_env
+COPY prime_android_adk_rl_env ./prime_android_adk_rl_env
+COPY environments ./environments
+COPY dummy_android_app ./dummy_android_app
+COPY scripts ./scripts
+COPY tests ./tests
+COPY Makefile ./Makefile
+
+RUN pip install --upgrade pip \
+    && pip install -e .
+
+CMD ["make", "test"]

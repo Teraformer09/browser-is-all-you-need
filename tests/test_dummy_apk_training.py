@@ -13,79 +13,7 @@ from android_adk_rl_env.training.local_rl import (
     summarize_episodes,
     train_policy,
 )
-
-
-class FakeAdbDevice:
-    def __init__(self) -> None:
-        self.task = DummyApkFormSearchTask()
-        self.reset_state()
-
-    def reset_state(self) -> None:
-        self.query = ""
-        self.name = ""
-        self.email = ""
-        self.submitted = False
-        self.focus = None
-
-    def wait_for_device(self) -> None:
-        pass
-
-    def clear_app_data(self) -> None:
-        self.reset_state()
-
-    def launch_app(self) -> None:
-        pass
-
-    def click_resource(self, resource_name: str) -> None:
-        if resource_name in {"search_input", "name_input", "email_input"}:
-            self.focus = resource_name
-        elif resource_name == "submit_button":
-            self.submitted = bool(self.name and self.email)
-
-    def input_resource(self, resource_name: str, text: str) -> None:
-        self.focus = resource_name
-        if resource_name == "search_input":
-            self.query = text
-        elif resource_name == "name_input":
-            self.name = text
-        elif resource_name == "email_input":
-            self.email = text
-
-    def press_back(self) -> None:
-        self.focus = None
-
-    def dump_resource_nodes(self, resource_names: tuple[str, ...]) -> list[dict[str, object]]:
-        values = {
-            "search_input": self.query,
-            "name_input": self.name,
-            "email_input": self.email,
-            "status_text": "Submitted" if self.submitted else "Status: waiting",
-        }
-        return [
-            {
-                "id": name,
-                "resource_id": f"{self.task.package}:id/{name}",
-                "text": values.get(name, ""),
-                "focused": self.focus == name,
-                "bounds": [0, 0, 10, 10],
-                "center": [5, 5],
-            }
-            for name in resource_names
-        ]
-
-    def read_shared_prefs(self) -> str:
-        if not (self.query or self.name or self.email or self.submitted):
-            return ""
-        submitted = "true" if self.submitted else "false"
-        return (
-            "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\" ?>\n"
-            "<map>\n"
-            f"    <boolean name=\"submitted\" value=\"{submitted}\" />\n"
-            f"    <string name=\"query\">{self.query}</string>\n"
-            f"    <string name=\"name\">{self.name}</string>\n"
-            f"    <string name=\"email\">{self.email}</string>\n"
-            "</map>\n"
-        )
+from tests.support.mock_adb_device import MockAdbDevice
 
 
 class DummyApkTrainingTest(unittest.TestCase):
@@ -93,7 +21,7 @@ class DummyApkTrainingTest(unittest.TestCase):
         task = DummyApkFormSearchTask()
 
         def env_factory() -> DummyApkEnv:
-            return DummyApkEnv(task=task, device=FakeAdbDevice())
+            return DummyApkEnv(task=task, device=MockAdbDevice(task=task))
 
         rollouts = run_rollouts(env_factory, lambda: ScriptedApkPolicy(task), episodes=1)
 
@@ -102,19 +30,19 @@ class DummyApkTrainingTest(unittest.TestCase):
         self.assertGreaterEqual(len(rollouts[0]["transitions"]), 6)
 
     def test_invalid_action_is_reported(self) -> None:
-        env = DummyApkEnv(device=FakeAdbDevice())
+        env = DummyApkEnv(device=MockAdbDevice())
         env.reset()
 
         result = env.step(ApkAction("click_resource", target="missing"))
 
-        self.assertEqual(result.reward, 0.0)
+        self.assertEqual(result.reward, -0.05)
         self.assertTrue(result.info["invalid_action"])
-        self.assertIn("unsupported target", result.info["error"])
+        self.assertIn("tap_unknown_element_id", result.info["error"])
 
     def test_sft_examples_from_rollout(self) -> None:
         task = DummyApkFormSearchTask()
         rollouts = run_rollouts(
-            lambda: DummyApkEnv(task=task, device=FakeAdbDevice()),
+            lambda: DummyApkEnv(task=task, device=MockAdbDevice(task=task)),
             lambda: ScriptedApkPolicy(task),
             episodes=1,
         )
@@ -135,7 +63,7 @@ class DummyApkTrainingTest(unittest.TestCase):
         task = DummyApkFormSearchTask(max_steps=8)
 
         def env_factory() -> DummyApkEnv:
-            return DummyApkEnv(task=task, device=FakeAdbDevice(), max_steps=8)
+            return DummyApkEnv(task=task, device=MockAdbDevice(task=task), max_steps=8)
 
         config = RlTrainConfig(episodes=3, max_steps=8, learning_rate=0.2, seed=11)
         action_space = CandidateActionSpace(task=task, include_distractors=False)
@@ -149,7 +77,7 @@ class DummyApkTrainingTest(unittest.TestCase):
 
     def test_state_key_tracks_typed_fields(self) -> None:
         task = DummyApkFormSearchTask()
-        env = DummyApkEnv(task=task, device=FakeAdbDevice())
+        env = DummyApkEnv(task=task, device=MockAdbDevice(task=task))
         observation = env.reset()
         before = state_key(observation)
         after = env.step(ApkAction("input_resource", target="search_input", text=task.query)).observation

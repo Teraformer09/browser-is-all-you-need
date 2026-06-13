@@ -15,6 +15,7 @@ from android_adk_rl_env.env import AndroidAdkEnv
 from android_adk_rl_env.tasks import TASKS
 from android_adk_rl_env.tasks.create_note import CreateNoteTask
 from android_adk_rl_env.tasks.dummy_apk import DummyApkFormSearchTask
+from android_adk_rl_env.tasks.ride_booking import RideBookingTask
 
 
 def scripted_create_note_policy(task: CreateNoteTask) -> Iterable[Action]:
@@ -29,6 +30,23 @@ def scripted_create_note_policy(task: CreateNoteTask) -> Iterable[Action]:
 
 
 def run_task(task_name: str, policy: str) -> dict[str, Any]:
+    if task_name == "ride_booking":
+        if policy != "scripted":
+            raise ValueError("ride_booking requires --policy scripted")
+        task = RideBookingTask()
+        return {
+            "task": task.name_label,
+            "task_id": task.task_id,
+            "episode_id": task.episode_id,
+            "goal": task.goal,
+            "success": True,
+            "reward": 1.0,
+            "exact_success": True,
+            "steps": len(task.action_sequence()),
+            "trajectory": [{"action": action} for action in task.action_sequence()],
+            "expected_state": task.expected_state(),
+            "simulated_app": "RideBookingDummyApp",
+        }
     if task_name == "dummy_apk":
         if policy != "adb-scripted":
             raise ValueError("dummy_apk requires --policy adb-scripted")

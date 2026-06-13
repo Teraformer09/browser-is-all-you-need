@@ -1,4 +1,4 @@
-"""Scripted APK policy used for smoke tests and demonstration data."""
+"""Scripted APK policy used for smoke tests and bootstrap data."""
 
 from __future__ import annotations
 

@@ -8,11 +8,13 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from android_adk_rl_env.apk_env import ApkAction, DummyApkEnv
+from android_adk_rl_env.training.failure_analysis import analyze_rollout
 
 
 class Policy(Protocol):
     def reset(self) -> None: ...
     def act(self, observation: dict[str, Any]) -> ApkAction: ...
+    def get_last_metadata(self) -> dict[str, Any]: ...
 
 
 def run_rollouts(
@@ -32,6 +34,7 @@ def run_rollouts(
         while not env.done:
             action = policy.act(observation)
             result = env.step(action)
+            metadata = policy.get_last_metadata() if hasattr(policy, "get_last_metadata") else {}
             transitions.append(
                 {
                     "observation": observation,
@@ -40,6 +43,7 @@ def run_rollouts(
                     "reward": result.reward,
                     "done": result.done,
                     "info": result.info,
+                    "policy_metadata": metadata,
                 }
             )
             observation = result.observation
@@ -47,19 +51,26 @@ def run_rollouts(
                 break
 
         final_observation = observation
-        results.append(
-            {
-                "episode": episode_index,
-                "task": final_observation.get("task"),
-                "goal": final_observation.get("goal"),
-                "success": final_observation.get("final_reward", 0.0) >= 1.0,
-                "reward": final_observation.get("reward", 0.0),
-                "final_reward": final_observation.get("final_reward", 0.0),
-                "steps": final_observation.get("steps", len(transitions)),
-                "transitions": transitions,
-                "final_observation": final_observation,
-            }
-        )
+        rollout = {
+            "episode": episode_index,
+            "task": final_observation.get("task"),
+            "goal": final_observation.get("goal"),
+            "success": final_observation.get("final_reward", 0.0) >= 1.0,
+            "reward": final_observation.get("reward", 0.0),
+            "final_reward": final_observation.get("final_reward", 0.0),
+            "steps": final_observation.get("steps", len(transitions)),
+            "transitions": transitions,
+            "final_observation": final_observation,
+            "total_prompt_tokens": sum(
+                int(item.get("policy_metadata", {}).get("prompt_tokens", 0) or 0) for item in transitions
+            ),
+            "total_completion_tokens": sum(
+                int(item.get("policy_metadata", {}).get("completion_tokens", 0) or 0) for item in transitions
+            ),
+            "estimated_openai_cost_usd": None,
+        }
+        rollout.update(analyze_rollout(rollout))
+        results.append(rollout)
     return results
 
 

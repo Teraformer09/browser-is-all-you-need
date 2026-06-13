@@ -10,10 +10,12 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .venv/
+.venv-prime/
 venv/
 
 # Android/generated outputs
 dummy_android_app/build/
+dummy_android_app/.gradle/
 dummy_android_app/debug.keystore
 *.keystore
 *.idsig

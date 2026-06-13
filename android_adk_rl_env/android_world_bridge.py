@@ -13,6 +13,7 @@ from typing import Any
 
 from android_adk_rl_env.adb_device import AdbDevice
 from android_adk_rl_env.apk_env import ApkAction
+from android_adk_rl_env.core.observations import build_observation
 from android_adk_rl_env.env import StepResult
 from android_adk_rl_env.tasks.dummy_apk import DummyApkFormSearchTask
 
@@ -74,15 +75,24 @@ class AndroidWorldDummyApkEnv:
         self.last_action: dict[str, str | None] | None = None
 
     def reset(self) -> dict[str, Any]:
-        self.adb_device.wait_for_device()
-        self.adb_device.clear_app_data()
-        self.adb_device.launch_app()
+        self.task = self.task.new_episode()
+        if hasattr(self.adb_device, "reset_app"):
+            self.adb_device.reset_app(episode_id=self.task.episode_id)
+        else:
+            self.adb_device.wait_for_device()
+            self.adb_device.clear_app_data()
+            try:
+                self.adb_device.launch_app(episode_id=self.task.episode_id)
+            except TypeError:
+                if hasattr(self.adb_device, "episode_id"):
+                    self.adb_device.episode_id = self.task.episode_id
+                self.adb_device.launch_app()
         self.steps = 0
         self.done = False
         self.last_error = None
         self.last_action = None
-        # Refresh AndroidWorld state after app launch. Some fake envs expose a
-        # simpler reset signature, so keep this permissive.
+        # Refresh AndroidWorld state after app launch. Keep this permissive so
+        # test doubles can use a simpler reset signature.
         try:
             self.android_env.reset(go_home=False)
         except TypeError:
@@ -136,15 +146,19 @@ class AndroidWorldDummyApkEnv:
     def observe(self) -> dict[str, Any]:
         prefs_xml = self._safe_read_prefs()
         ui_nodes, ui_error = self._safe_get_ui_nodes()
+        apk_state = self.task.state_from_prefs(prefs_xml)
         components = self.task.reward_components_from_prefs(prefs_xml)
         final_reward = self.task.reward_from_prefs(prefs_xml)
         shaped_reward = self.task.shaped_reward_from_prefs(prefs_xml)
-        return {
+        raw = {
             "task": self.task.name_label,
+            "task_id": self.task.task_id,
+            "episode_id": self.task.episode_id,
             "goal": self.task.goal,
             "package": self.task.package,
             "backend": "android_world",
             "steps": self.steps,
+            "step": self.steps,
             "max_steps": self.max_steps,
             "done": self.done,
             "ui": ui_nodes,
@@ -152,11 +166,16 @@ class AndroidWorldDummyApkEnv:
             "last_action": self.last_action,
             "last_error": self.last_error,
             "expected_state": self.task.expected_state(),
+            "apk_state": apk_state,
             "reward_components": components,
             "reward": shaped_reward if self.shaped_rewards else final_reward,
             "final_reward": final_reward,
+            "exact_success": final_reward >= 1.0,
+            "screen": apk_state.get("screen") or "form",
             "shared_prefs_present": bool(prefs_xml.strip()),
         }
+        raw.update(build_observation(raw, mode="compact_text"))
+        return raw
 
     def close(self) -> None:
         close = getattr(self.android_env, "close", None)
@@ -166,10 +185,30 @@ class AndroidWorldDummyApkEnv:
     def _normalize_action(self, action: ApkAction) -> ApkAction:
         if action.target is None:
             return action
-        return ApkAction(action=action.action, target=self._local_resource_name(action.target), text=action.text)
+        return ApkAction(
+            action=action.action,
+            target=self._local_resource_name(action.target),
+            text=action.text,
+            x=action.x,
+            y=action.y,
+            x1=action.x1,
+            y1=action.y1,
+            x2=action.x2,
+            y2=action.y2,
+            duration_ms=action.duration_ms,
+        )
 
     def _validate(self, action: ApkAction) -> str | None:
-        if action.action not in {"click_resource", "input_resource", "press_back", "wait", "finish"}:
+        if action.action not in {
+            "click_resource",
+            "input_resource",
+            "tap_coordinates",
+            "press_back",
+            "press_home",
+            "swipe",
+            "wait",
+            "finish",
+        }:
             return f"unsupported action: {action.action}"
         if action.action in {"click_resource", "input_resource"}:
             if action.target not in self.task.resource_names:
@@ -178,7 +217,11 @@ class AndroidWorldDummyApkEnv:
                 return f"resource not visible in AndroidWorld state: {action.target}"
         if action.action == "input_resource" and action.text is None:
             return "input_resource requires text"
-        if action.action in {"press_back", "wait", "finish"} and action.target is not None:
+        if action.action == "tap_coordinates" and (action.x is None or action.y is None):
+            return "tap_missing_coordinates"
+        if action.action == "swipe" and any(value is None for value in (action.x1, action.y1, action.x2, action.y2)):
+            return "swipe_missing_coordinates"
+        if action.action in {"press_back", "press_home", "wait", "finish"} and action.target is not None:
             return f"{action.action} does not use target"
         if action.action == "finish" and self.observe().get("final_reward", 0.0) < 1.0:
             return "finish is only valid after final_reward is 1.0"
@@ -199,8 +242,20 @@ class AndroidWorldDummyApkEnv:
                     clear_text=True,
                 )
             )
+        elif action.action == "tap_coordinates":
+            self.android_env.execute_action(
+                json_action.JSONAction(action_type=json_action.CLICK, x=action.x, y=action.y)
+            )
         elif action.action == "press_back":
             self.android_env.execute_action(json_action.JSONAction(action_type=json_action.NAVIGATE_BACK))
+        elif action.action == "press_home":
+            self.android_env.execute_action(json_action.JSONAction(action_type=json_action.NAVIGATE_HOME))
+        elif action.action == "swipe":
+            direction = self._swipe_direction(action)
+            if hasattr(json_action, "SWIPE"):
+                self.android_env.execute_action(json_action.JSONAction(action_type=json_action.SWIPE, direction=direction))
+            else:
+                self.android_env.execute_action(json_action.JSONAction(action_type=json_action.SCROLL, direction=direction))
         elif action.action == "wait":
             try:
                 self.android_env.execute_action(json_action.JSONAction(action_type=json_action.WAIT))
@@ -226,6 +281,13 @@ class AndroidWorldDummyApkEnv:
             if self._element_matches(element, resource_name, full_id):
                 return index
         return None
+
+    def _swipe_direction(self, action: ApkAction) -> str:
+        dx = (action.x2 or 0) - (action.x1 or 0)
+        dy = (action.y2 or 0) - (action.y1 or 0)
+        if abs(dx) > abs(dy):
+            return "right" if dx > 0 else "left"
+        return "down" if dy > 0 else "up"
 
     def _safe_get_ui_nodes(self) -> tuple[list[dict[str, object]], str | None]:
         try:

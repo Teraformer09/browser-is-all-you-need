@@ -1,0 +1,43 @@
+services:
+  android-adk:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: prime-android-adk-rl-env:local
+    privileged: true
+    ipc: host
+    shm_size: 8gb
+    working_dir: /workspace
+    environment:
+      ANDROID_SDK_ROOT: /opt/android-sdk
+      ANDROID_HOME: /opt/android-sdk
+      ANDROID_BUILD_TOOLS: /opt/android-sdk/build-tools/34.0.0
+      ANDROID_WORLD_VENV: /opt/android-adk-venv
+      ANDROID_WORLD_SRC: /opt/android_world
+      ANDROID_AVD_HOME: /workspace/.deps/android_avd
+      ANDROID_WORLD_AVD_NAME: AndroidWorld_API_33
+      ANDROID_WORLD_SYSTEM_IMAGE: system-images;android-33;google_apis;x86_64
+      ADB_PATH: /opt/android-sdk/platform-tools/adb
+      EMULATOR_BIN: /opt/android-sdk/emulator/emulator
+      ADB_SERIAL: ${ADB_SERIAL:-emulator-5556}
+      CONSOLE_PORT: ${CONSOLE_PORT:-5556}
+      GRPC_PORT: ${GRPC_PORT:-8554}
+      START_EMULATOR: ${START_EMULATOR:-1}
+      STOP_EMULATOR_AFTER_RUN: ${STOP_EMULATOR_AFTER_RUN:-1}
+      MODEL: ${MODEL:-gpt-4o-mini}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      PRIME_API_KEY: ${PRIME_API_KEY:-}
+      PRIME_ANDROID_BACKEND: ${PRIME_ANDROID_BACKEND:-adb}
+      API_BASE_URL: ${API_BASE_URL:-https://api.openai.com/v1}
+      API_CLIENT_TYPE: ${API_CLIENT_TYPE:-openai_chat_completions}
+    volumes:
+      - .:/workspace
+      - android-adk-avd:/workspace/.deps/android_avd
+      - android-adk-cache:/root/.cache
+    ports:
+      - "5554-5557:5554-5557"
+      - "8554:8554"
+
+volumes:
+  android-adk-avd:
+  android-adk-cache:

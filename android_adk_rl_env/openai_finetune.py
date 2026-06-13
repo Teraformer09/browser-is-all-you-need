@@ -57,13 +57,15 @@ def load_rollouts(path: str | Path) -> list[dict[str, Any]]:
 def examples_from_rollouts(rollouts: list[dict[str, Any]], include_failures: bool = False) -> list[dict[str, Any]]:
     examples: list[dict[str, Any]] = []
     for rollout in rollouts:
-        if not include_failures and not rollout.get("success"):
+        if not include_failures and not rollout.get("usable_for_sft", rollout.get("success")):
             continue
         for transition in rollout.get("transitions", []):
             action = transition.get("action", {})
-            if action.get("action") == "finish":
+            if action.get("action") == "finish" or action.get("type") == "finish":
                 continue
-            examples.append(messages_for_action(transition.get("observation", {}), action))
+            if transition.get("info", {}).get("error") not in {None, ""}:
+                continue
+            examples.append(messages_for_action(transition.get("observation", {}), _to_model_action(action)))
     return examples
 
 
@@ -86,12 +88,12 @@ def scripted_bootstrap_examples() -> list[dict[str, Any]]:
         "final_reward": 0.0,
     }
     actions = [
-        {"action": "input_resource", "target": "search_input", "text": task.query},
-        {"action": "click_resource", "target": "search_button", "text": None},
-        {"action": "input_resource", "target": "name_input", "text": task.name},
-        {"action": "input_resource", "target": "email_input", "text": task.email},
-        {"action": "press_back", "target": None, "text": None},
-        {"action": "click_resource", "target": "submit_button", "text": None},
+        _model_action("type_text", "search_input", task.query),
+        _model_action("tap_element", "search_button"),
+        _model_action("type_text", "name_input", task.name),
+        _model_action("type_text", "email_input", task.email),
+        _model_action("press_back"),
+        _model_action("tap_element", "submit_button"),
     ]
     examples: list[dict[str, Any]] = []
     observation = dict(base)
@@ -101,6 +103,34 @@ def scripted_bootstrap_examples() -> list[dict[str, Any]]:
         examples.append(messages_for_action(observation, action))
         observation["last_action"] = action
     return examples
+
+
+def _model_action(action_type: str, element_id: str | None = None, text: str | None = None) -> dict[str, Any]:
+    return {
+        "type": action_type,
+        "element_id": element_id,
+        "text": text,
+        "x": None,
+        "y": None,
+        "x1": None,
+        "y1": None,
+        "x2": None,
+        "y2": None,
+        "duration_ms": None,
+    }
+
+
+def _to_model_action(action: dict[str, Any]) -> dict[str, Any]:
+    if "type" in action:
+        return action
+    mapping = {
+        "input_resource": "type_text",
+        "click_resource": "tap_element",
+        "press_back": "press_back",
+        "wait": "wait",
+        "finish": "finish",
+    }
+    return _model_action(mapping.get(action.get("action"), "wait"), action.get("target"), action.get("text"))
 
 
 def write_jsonl(path: str | Path, rows: list[dict[str, Any]]) -> None:

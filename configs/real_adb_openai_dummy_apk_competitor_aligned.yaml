@@ -1,0 +1,21 @@
+backend: adb
+policy: openai
+model: gpt-4o-mini
+task: dummy_apk
+surface: android_apk
+observation_mode: compact_text
+episodes: 1
+max_steps: 12
+install_apk: true
+safe_mode: true
+shaped_rewards: true
+benchmark_alignment:
+  real_adb: true
+  dockerized_emulator: true
+  fake_backend_allowed: false
+  task_lifecycle_hooks: true
+  shaped_rewards: true
+  train_eval_splits: true
+  seeded_randomization_available: true
+  sft_export_available: true
+  replay_buffer_available: true
