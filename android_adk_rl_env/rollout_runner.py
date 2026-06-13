@@ -101,9 +101,32 @@ def run_rollout_suite(
     return summary
 
 
+def _adb_device_for_package(package: str) -> AdbDevice:
+    return AdbDevice(
+        adb_path=os.environ.get("ADB_PATH", "adb"),
+        package=package,
+        serial=os.environ.get("ADB_SERIAL") or None,
+    )
+
+
 def _run_form_task(task: DummyApkFormSearchTask, backend: str, policy: str = "scripted") -> dict[str, Any]:
+    if policy == "scripted":
+        result = task.run_scripted(_adb_device_for_package(task.package))
+        return {
+            "task_id": result.get("task_id", task.task_id),
+            "episode_id": result.get("episode_id", task.episode_id),
+            "instruction": task.goal,
+            "reward": float(result.get("reward", 0.0)),
+            "final_reward": float(result.get("reward", 0.0)),
+            "exact_success": bool(result.get("success", False)),
+            "success": bool(result.get("success", False)),
+            "steps": len(result.get("trajectory", [])),
+            "status_text": result.get("status_text"),
+            "shared_prefs": result.get("shared_prefs"),
+        }
+
     def env_factory() -> DummyApkEnv:
-        device = AdbDevice(package=task.package)
+        device = _adb_device_for_package(task.package)
         return DummyApkEnv(task=task, device=device, max_steps=task.max_steps)
 
     def policy_factory() -> Any:
@@ -137,32 +160,18 @@ def _run_form_task(task: DummyApkFormSearchTask, backend: str, policy: str = "sc
 
 
 def _run_ride_task(task: RideBookingTask, backend: str) -> dict[str, Any]:
-    def env_factory() -> DummyApkEnv:
-        device = AdbDevice(package=task.package)
-        return DummyApkEnv(task=task, device=device, max_steps=task.max_steps)
-
-    rollout = run_rollouts(env_factory=env_factory, policy_factory=lambda: SequencePolicy(task.action_sequence()), episodes=1)[0]
-    final = rollout.get("final_observation", {})
+    result = task.run_scripted(_adb_device_for_package(task.package))
     return {
-        "task_id": final.get("task_id", task.task_id),
-        "episode_id": final.get("episode_id", task.episode_id),
+        "task_id": result.get("task_id", task.task_id),
+        "episode_id": result.get("episode_id", task.episode_id),
         "instruction": task.goal,
-        "reward": final.get("reward", rollout.get("reward", 0.0)),
-        "final_reward": final.get("final_reward", rollout.get("final_reward", 0.0)),
-        "exact_success": final.get("exact_success", rollout.get("success", False)),
-        "success": rollout.get("success", False),
-        "steps": rollout.get("steps", 0),
-        "trajectory_quality": rollout.get("trajectory_quality"),
-        "failure_category": rollout.get("failure_category"),
-        "usable_for_sft": rollout.get("usable_for_sft"),
-        "usable_for_rl": rollout.get("usable_for_rl"),
-        "invalid_action_count": rollout.get("invalid_action_count", 0),
-        "safety_block_count": rollout.get("safety_block_count", 0),
-        "adb_error_count": rollout.get("adb_error_count", 0),
-        "sft_usable_step_count": rollout.get("sft_usable_step_count", 0),
-        "total_prompt_tokens": rollout.get("total_prompt_tokens", 0),
-        "total_completion_tokens": rollout.get("total_completion_tokens", 0),
-        "rollout": rollout,
+        "reward": float(result.get("reward", 0.0)),
+        "final_reward": float(result.get("reward", 0.0)),
+        "exact_success": bool(result.get("success", False)),
+        "success": bool(result.get("success", False)),
+        "steps": len(result.get("trajectory", [])),
+        "status_text": result.get("status_text"),
+        "shared_prefs": result.get("shared_prefs"),
     }
 
 

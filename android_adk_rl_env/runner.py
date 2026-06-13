@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 from collections.abc import Iterable
 from pathlib import Path
@@ -51,7 +52,13 @@ def run_task(task_name: str, policy: str) -> dict[str, Any]:
         if policy != "adb-scripted":
             raise ValueError("dummy_apk requires --policy adb-scripted")
         task = DummyApkFormSearchTask()
-        return task.run_scripted(AdbDevice(package=task.package))
+        return task.run_scripted(
+            AdbDevice(
+                adb_path=os.environ.get("ADB_PATH", "adb"),
+                package=task.package,
+                serial=os.environ.get("ADB_SERIAL") or None,
+            )
+        )
 
     task_cls = TASKS[task_name]
     task = task_cls()

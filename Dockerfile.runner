@@ -7,7 +7,7 @@ ENV ANDROID_BUILD_TOOLS=/opt/android-sdk/build-tools/35.0.0
 ENV PATH="${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/cmdline-tools/latest/bin:${PATH}"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl unzip git openjdk-17-jdk ca-certificates make build-essential \
+    curl unzip git default-jdk ca-certificates make build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p ${ANDROID_HOME}/cmdline-tools \

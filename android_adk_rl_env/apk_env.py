@@ -389,7 +389,11 @@ class DummyApkEnv:
         try:
             xml_text = self.device.dump_ui() if hasattr(self.device, "dump_ui") else None
             self.ui_tree_xml = xml_text
-            return self.device.dump_resource_nodes(self.task.resource_names), None, xml_text
+            if xml_text is not None and hasattr(self.device, "_resource_nodes_from_xml"):
+                nodes = self.device._resource_nodes_from_xml(xml_text, self.task.resource_names)
+            else:
+                nodes = self.device.dump_resource_nodes(self.task.resource_names)
+            return nodes, None, xml_text
         except Exception as exc:  # noqa: BLE001 - observations should survive UI dump errors.
             return [], f"{type(exc).__name__}: {exc}", self.ui_tree_xml
 

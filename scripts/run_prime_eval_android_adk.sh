@@ -132,5 +132,4 @@ export PYTHONPATH="$ROOT_DIR${PYTHONPATH:+:$PYTHONPATH}"
   --save-results \
   --skip-upload \
   --disable-env-server \
-  --debug \
   | tee "$RESULTS_DIR/prime_eval.log"

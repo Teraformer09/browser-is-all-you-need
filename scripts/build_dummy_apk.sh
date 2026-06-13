@@ -90,6 +90,10 @@ fi
   --ks "$KEYSTORE" \
   --ks-pass pass:android \
   --key-pass pass:android \
+  --v1-signing-enabled true \
+  --v2-signing-enabled true \
+  --v3-signing-enabled false \
+  --v4-signing-enabled false \
   --out "$BUILD_DIR/out/dummy-rl-app.apk" \
   "$BUILD_DIR/out/dummy-aligned.apk"
 

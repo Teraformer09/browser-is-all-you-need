@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field, replace
 from typing import Any
 
+from android_adk_rl_env.adb_device import AdbDevice
 from android_adk_rl_env.tasks.dummy_apk import new_episode_id
 
 
@@ -89,6 +90,63 @@ class RideBookingTask:
 
     def teardown_task(self, device: Any) -> None:
         del device
+
+    def run_scripted(self, device: AdbDevice) -> dict[str, Any]:
+        device.reset_app(episode_id=self.episode_id, extras=self.launch_extras())
+
+        trajectory: list[dict[str, str]] = []
+        self._record(trajectory, "input_resource", "pickup_input", self.pickup)
+        device.input_resource("pickup_input", self.pickup)
+        device.press_back()
+        self._record(trajectory, "input_resource", "drop_input", self.drop)
+        device.input_resource("drop_input", self.drop)
+        device.press_back()
+
+        ride_target = {
+            "Mini": "ride_option_mini",
+            "Sedan": "ride_option_sedan",
+            "Premium": "ride_option_premium",
+        }[self.selected_ride]
+        self._record(trajectory, "click_resource", ride_target)
+        device.click_resource(ride_target)
+        device.swipe(540, 2100, 540, 1200, 400)
+
+        if self.coupon:
+            self._record(trajectory, "click_resource", "apply_coupon_button")
+            device.click_resource("apply_coupon_button")
+            self._record(trajectory, "input_resource", "coupon_input", self.coupon)
+            device.input_resource("coupon_input", self.coupon)
+            self._record(trajectory, "click_resource", "coupon_apply_button")
+            device.click_resource("coupon_apply_button")
+
+        if self.payment:
+            payment_target = f"payment_{self.payment}"
+            self._record(trajectory, "click_resource", payment_target)
+            device.click_resource(payment_target)
+
+        self._record(trajectory, "click_resource", "confirm_ride_button")
+        device.click_resource("confirm_ride_button")
+
+        if self.cancel_after_assignment:
+            self._record(trajectory, "click_resource", "cancel_ride_button")
+            device.click_resource("cancel_ride_button")
+
+        prefs = device.read_shared_prefs()
+        reward = self.reward_from_prefs(prefs)
+        status_node = device.find_resource("final_status_text")
+
+        return {
+            "task": self.name_label,
+            "task_id": self.task_id,
+            "episode_id": self.episode_id,
+            "goal": self.goal,
+            "package": self.package,
+            "success": reward >= 1.0,
+            "reward": reward,
+            "status_text": status_node.text,
+            "shared_prefs": prefs,
+            "trajectory": trajectory,
+        }
 
     def state_from_prefs(self, prefs_xml: str) -> dict[str, str]:
         if not prefs_xml.strip():
@@ -179,6 +237,18 @@ class RideBookingTask:
         if self.cancel_after_assignment:
             actions.append({"type": "tap_element", "element_id": "cancel_ride_button", "text": None})
         return [_complete_action(action) for action in actions]
+
+    def _record(
+        self,
+        trajectory: list[dict[str, str]],
+        action: str,
+        target: str,
+        text: str | None = None,
+    ) -> None:
+        entry = {"action": action, "target": target}
+        if text is not None:
+            entry["text"] = text
+        trajectory.append(entry)
 
 
 def _complete_action(action: dict[str, Any]) -> dict[str, Any]:

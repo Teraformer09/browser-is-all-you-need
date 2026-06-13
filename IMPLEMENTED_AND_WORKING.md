@@ -1,0 +1,91 @@
+# Implemented And Working
+
+Last updated: 2026-06-13
+
+This file tracks what is implemented and what was actually validated in the current repo state.
+
+## Verified Working
+
+- Real ADB-backed APK build and install
+- Real scripted form task execution
+- Real scripted ride booking task execution
+- Real scripted ride cancel task execution
+- Full `make run` rollout suite with 4 successful tasks
+- Strict JSON action parsing and validation
+- Reward verification from durable APK state
+- Episode-safe reward checks with `episode_id`
+- Rollout artifact writing with `config.json`, `summary.json`, `rollout.jsonl`, `reward_trace.jsonl`, and `replay.html`
+- Docker runner image build
+
+## Commands Run Successfully
+
+```bash
+make build-apk
+make install-apk
+ADB_SERIAL=emulator-5558 make adb-run
+ADB_SERIAL=emulator-5558 make run
+make test
+python3 -m unittest discover -s tests
+docker compose -f docker-compose.yml build mobile-rl-runner
+```
+
+## Real Emulator Validation
+
+Validated on 2026-06-13 with:
+
+- emulator: `emulator-5558`
+- Android version: API 34
+- package: `com.primeintellect.dummyrl`
+
+Healthcheck result:
+
+```text
+serial=emulator-5558
+api_level=34
+boot_completed=1
+package_installed=true
+```
+
+Rollout result:
+
+```text
+Rollout run completed
+Run ID: 20260613_120253
+Backend: adb
+Tasks: 4
+Success rate: 1.0
+Artifacts: artifacts/runs/20260613_120253
+Replay: artifacts/runs/20260613_120253/replay.html
+```
+
+## Test Status
+
+```text
+make test: passing
+python3 -m unittest discover -s tests: passing
+Skipped: 1 test
+```
+
+## Implemented But Not Executed In This Session
+
+These paths still need a real API key or a separate longer validation pass:
+
+- OpenAI rollout collection through `android_adk_rl_env.train`
+- Prime eval through `./scripts/run_prime_eval_android_adk.sh`
+- AndroidWorld OpenAI run
+- Dockerized live ADB rollout execution
+
+Reason not executed here:
+
+- `OPENAI_API_KEY` was not available in the current shell
+
+## Main Fixes Applied
+
+- APK signing now uses a working v1+v2 signing path
+- `Makefile` now invokes shell scripts through `bash`
+- Prime eval script no longer passes the unsupported `--debug` flag
+- Docker runner now installs `default-jdk` instead of a missing package name
+- ADB calls now have timeouts instead of hanging indefinitely
+- `ADB_SERIAL` is now respected by the rollout and runner entrypoints
+- Rollout smoke execution now uses real scripted ADB flows for the verified tasks
+- Ride task automation now handles the live scroll and keyboard behavior correctly

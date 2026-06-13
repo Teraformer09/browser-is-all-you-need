@@ -51,6 +51,7 @@ class AdbDevice:
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            timeout=15,
         )
 
     def connect(self) -> None:
@@ -181,10 +182,8 @@ class AdbDevice:
                 )
         raise LookupError(f"resource not found: {full_id}")
 
-
-    def dump_resource_nodes(self, resource_names: tuple[str, ...]) -> list[dict[str, object]]:
+    def _resource_nodes_from_xml(self, xml_text: str, resource_names: tuple[str, ...]) -> list[dict[str, object]]:
         wanted = {f"{self.package}:id/{name}": name for name in resource_names}
-        xml_text = self.dump_ui()
         root = ET.fromstring(xml_text)
         nodes: list[dict[str, object]] = []
         for elem in root.iter("node"):
@@ -211,17 +210,24 @@ class AdbDevice:
             )
         return nodes
 
+    def dump_resource_nodes(self, resource_names: tuple[str, ...]) -> list[dict[str, object]]:
+        xml_text = self.dump_ui()
+        return self._resource_nodes_from_xml(xml_text, resource_names)
+
     def read_shared_prefs(self) -> str:
-        result = self.adb(
-            "shell",
-            "run-as",
-            self.package,
-            "cat",
-            "shared_prefs/dummy_state.xml",
-            check=False,
-        )
-        if result.stdout.strip():
-            return result.stdout
+        try:
+            result = self.adb(
+                "shell",
+                "run-as",
+                self.package,
+                "cat",
+                "shared_prefs/dummy_state.xml",
+                check=False,
+            )
+            if result.stdout.strip():
+                return result.stdout
+        except subprocess.TimeoutExpired:
+            pass
         return self._debug_state_as_prefs()
 
     def device_info(self) -> dict[str, str]:
