@@ -70,7 +70,6 @@ class PrimeAndroidApkEnv(vf.MultiTurnEnv):
             {
                 "question": self.task.goal,
                 "answer": self.task.expected_state(),
-                "task": self.task.name_label,
             }
             for _ in range(max_examples)
         ]

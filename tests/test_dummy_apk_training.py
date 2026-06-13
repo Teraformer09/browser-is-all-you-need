@@ -1,7 +1,6 @@
 import unittest
 
 from android_adk_rl_env.apk_env import ApkAction, DummyApkEnv
-from android_adk_rl_env.openai_finetune import examples_from_rollouts, scripted_bootstrap_examples
 from android_adk_rl_env.policies.scripted_policy import ScriptedApkPolicy
 from android_adk_rl_env.tasks.dummy_apk import DummyApkFormSearchTask
 from android_adk_rl_env.training.rollout import run_rollouts
@@ -38,26 +37,6 @@ class DummyApkTrainingTest(unittest.TestCase):
         self.assertEqual(result.reward, -0.05)
         self.assertTrue(result.info["invalid_action"])
         self.assertIn("tap_unknown_element_id", result.info["error"])
-
-    def test_sft_examples_from_rollout(self) -> None:
-        task = DummyApkFormSearchTask()
-        rollouts = run_rollouts(
-            lambda: DummyApkEnv(task=task, device=MockAdbDevice(task=task)),
-            lambda: ScriptedApkPolicy(task),
-            episodes=1,
-        )
-
-        examples = examples_from_rollouts(rollouts)
-
-        self.assertGreaterEqual(len(examples), 6)
-        self.assertIn("messages", examples[0])
-        self.assertEqual(examples[0]["messages"][-1]["role"], "assistant")
-
-    def test_scripted_bootstrap_examples_do_not_need_adb(self) -> None:
-        examples = scripted_bootstrap_examples()
-
-        self.assertEqual(len(examples), 6)
-        self.assertIn("search_input", examples[0]["messages"][-1]["content"])
 
     def test_local_rl_trainer_updates_policy(self) -> None:
         task = DummyApkFormSearchTask(max_steps=8)

@@ -18,13 +18,10 @@ def analyze_rollout(rollout: dict[str, Any]) -> dict[str, Any]:
     exact_success = bool(final.get("exact_success") or rollout.get("success"))
     failure_category = classify_failure(rollout, invalid_action_count, safety_block_count, adb_error_count)
     trajectory_quality = classify_quality(exact_success, final.get("reward", 0.0), failure_category)
-    sft_usable_step_count = sum(1 for item in transitions if _transition_usable_for_sft(item))
-    usable_for_sft = exact_success and sft_usable_step_count > 0
     usable_for_rl = failure_category not in {"unsafe"}
     return {
         "trajectory_quality": trajectory_quality,
         "failure_category": failure_category,
-        "usable_for_sft": usable_for_sft,
         "usable_for_rl": usable_for_rl,
         "usable_for_rollout_run": exact_success,
         "invalid_action_count": invalid_action_count,
@@ -33,7 +30,6 @@ def analyze_rollout(rollout: dict[str, Any]) -> dict[str, Any]:
         "stale_episode_rejection_count": int(
             bool(final.get("reward_components", {}).get("episode_match") is False and final.get("apk_state"))
         ),
-        "sft_usable_step_count": sft_usable_step_count,
     }
 
 
@@ -74,13 +70,3 @@ def classify_failure(
     if final.get("reward_components", {}).get("episode_match") is False:
         return "reward_mismatch"
     return "none"
-
-
-def _transition_usable_for_sft(transition: dict[str, Any]) -> bool:
-    action = transition.get("action", {})
-    info = transition.get("info", {})
-    if action.get("action") == "finish" or action.get("type") == "finish":
-        return False
-    if info.get("error") not in {None, ""}:
-        return False
-    return True

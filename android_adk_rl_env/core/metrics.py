@@ -20,7 +20,6 @@ def summarize_task_results(task_results: list[dict[str, Any]]) -> dict[str, Any]
         "adb_error_rate": _ratio(sum(int(result.get("adb_error_count", 0) or 0) for result in task_results), sum(steps)),
         "timeout_rate": _ratio(sum(1 for result in task_results if result.get("failure_category") == "timeout"), count),
         "stale_episode_rejection_count": sum(int(result.get("stale_episode_rejection_count", 0) or 0) for result in task_results),
-        "sft_usable_step_count": sum(int(result.get("sft_usable_step_count", 0) or 0) for result in task_results),
         "total_prompt_tokens": sum(prompt_tokens),
         "total_completion_tokens": sum(completion_tokens),
         "estimated_openai_cost_usd": _cost_or_none(task_results),
@@ -36,7 +35,6 @@ def benchmark_alignment_metadata() -> dict[str, Any]:
         "shaped_rewards": True,
         "train_eval_splits": True,
         "seeded_randomization_available": True,
-        "sft_export_available": True,
         "replay_buffer_available": True,
     }
 

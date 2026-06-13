@@ -97,7 +97,7 @@ cleanup() {
 trap cleanup EXIT
 
 mkdir -p "$RESULTS_DIR"
-ENV_ARGS="$("$PYTHON_BIN" -c 'import json, os; print(json.dumps({"backend": os.environ["BACKEND"], "adb_path": os.environ["ADB_PATH"], "adb_serial": os.environ.get("ADB_SERIAL") or None, "max_turns": int(os.environ["MAX_TURNS"])}))')"
+ENV_ARGS="$("$PYTHON_BIN" -c 'import json, os; print(json.dumps({"backend": os.environ["BACKEND"], "adb_path": os.environ["ADB_PATH"], "adb_serial": os.environ.get("ADB_SERIAL") or None, "max_turns": int(os.environ["MAX_TURNS"]), "console_port": int(os.environ.get("CONSOLE_PORT", "5556")), "grpc_port": int(os.environ.get("GRPC_PORT", "8554"))}))')"
 
 if [[ -f "$ROOT_DIR/.env" ]]; then
   set -a

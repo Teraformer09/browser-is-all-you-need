@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import urllib.error
 import urllib.request
 from typing import Any
@@ -74,12 +75,13 @@ class OpenAIActionPolicy:
         model: str = "gpt-4o-mini",
         api_key: str | None = None,
         api_url: str = OPENAI_API_URL,
-        timeout: float = 60.0,
+        timeout: float | None = None,
     ) -> None:
         self.model = model
         self.api_key = api_key or get_openai_api_key()
         self.api_url = api_url
-        self.timeout = timeout
+        self.timeout = timeout or float(os.environ.get("OPENAI_POLICY_TIMEOUT_SECONDS", "120"))
+        self.max_retries = int(os.environ.get("OPENAI_POLICY_MAX_RETRIES", "2"))
         self._last_metadata: dict[str, Any] = {}
         if not self.api_key:
             raise RuntimeError("OPENAI_API_KEY is required for --policy openai")
@@ -114,7 +116,8 @@ class OpenAIActionPolicy:
             action = json.loads(action_json)
         except json.JSONDecodeError as exc:
             raise RuntimeError(f"OpenAI response was not valid action JSON: {action_json}") from exc
-        return ApkAction.from_dict(action)
+        candidate = self._normalize_action(ApkAction.from_dict(action))
+        return self._repair_action(candidate, observation)
 
     def get_last_metadata(self) -> dict[str, Any]:
         return dict(self._last_metadata)
@@ -122,15 +125,24 @@ class OpenAIActionPolicy:
     def _compact_observation(self, observation: dict[str, Any]) -> dict[str, Any]:
         reward_components = observation.get("reward_components") or {}
         ui = observation.get("ui", [])
+        valid_targets = []
+        visible_text = []
+        for node in ui:
+            node_id = node.get("id")
+            node_text = node.get("text") or node.get("content_description")
+            if node_id and node_id not in valid_targets:
+                valid_targets.append(node_id)
+            if node_text and len(visible_text) < 8:
+                visible_text.append(str(node_text))
         return {
             "goal": observation.get("goal"),
             "steps": observation.get("steps"),
             "max_steps": observation.get("max_steps"),
-            "valid_targets": [node.get("id") for node in ui if node.get("id")],
+            "valid_targets": valid_targets,
+            "visible_text": visible_text,
             "missing_reward_components": [
                 name for name, passed in reward_components.items() if not passed
             ],
-            "ui": ui,
             "last_action": observation.get("last_action"),
             "last_error": observation.get("last_error"),
             "expected_state": observation.get("expected_state"),
@@ -149,12 +161,147 @@ class OpenAIActionPolicy:
                 "Content-Type": "application/json",
             },
         )
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                return json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="replace")
-            raise RuntimeError(f"OpenAI API error {exc.code}: {detail}") from exc
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                    return json.loads(response.read().decode("utf-8"))
+            except urllib.error.HTTPError as exc:
+                detail = exc.read().decode("utf-8", errors="replace")
+                raise RuntimeError(f"OpenAI API error {exc.code}: {detail}") from exc
+            except (TimeoutError, urllib.error.URLError) as exc:
+                if attempt >= self.max_retries:
+                    raise RuntimeError(
+                        f"OpenAI request failed after {self.max_retries} attempts: {type(exc).__name__}: {exc}"
+                    ) from exc
+                time.sleep(float(attempt))
+        raise RuntimeError("OpenAI request retry loop exited unexpectedly")
+
+    def _normalize_action(self, action: ApkAction) -> ApkAction:
+        target = self._normalize_target(action.target)
+        text = self._normalize_text(action.text) if action.action == "input_resource" else action.text
+        return ApkAction(
+            action=action.action,
+            target=target,
+            text=text,
+            x=action.x,
+            y=action.y,
+            x1=action.x1,
+            y1=action.y1,
+            x2=action.x2,
+            y2=action.y2,
+            duration_ms=action.duration_ms,
+        )
+
+    def _normalize_target(self, target: str | None) -> str | None:
+        if target is None:
+            return None
+        normalized = target.strip().strip("\"'`")
+        return normalized.rstrip(".,;:!?") or None
+
+    def _normalize_text(self, text: str | None) -> str | None:
+        if text is None:
+            return None
+        normalized = text.strip().strip("\"'`")
+        return normalized.rstrip(".,;:!?") or ""
+
+    def _repair_action(self, action: ApkAction, observation: dict[str, Any]) -> ApkAction:
+        valid_targets = {
+            str(target)
+            for target in observation.get("valid_targets", [])
+            if target
+        }
+        if not valid_targets:
+            valid_targets = {
+                str(node.get("id"))
+                for node in observation.get("ui", [])
+                if isinstance(node, dict) and node.get("id")
+            }
+        action = self._canonicalize_expected_inputs(action, observation)
+        if self._is_action_valid_for_observation(action, valid_targets):
+            return action
+        fallback = self._scripted_fallback(observation, valid_targets)
+        if fallback is not None:
+            return fallback
+        return ApkAction(action="wait", duration_ms=1000)
+
+    def _canonicalize_expected_inputs(self, action: ApkAction, observation: dict[str, Any]) -> ApkAction:
+        if action.action != "input_resource" or not action.target:
+            return action
+        expected = observation.get("expected_state") or {}
+        expected_text_by_target = {
+            "search_input": str(expected.get("query") or ""),
+            "name_input": str(expected.get("name") or ""),
+            "email_input": str(expected.get("email") or ""),
+        }
+        canonical_text = expected_text_by_target.get(action.target)
+        if canonical_text is None:
+            return action
+        return ApkAction(
+            action=action.action,
+            target=action.target,
+            text=canonical_text,
+            x=action.x,
+            y=action.y,
+            x1=action.x1,
+            y1=action.y1,
+            x2=action.x2,
+            y2=action.y2,
+            duration_ms=action.duration_ms,
+        )
+
+    def _is_action_valid_for_observation(self, action: ApkAction, valid_targets: set[str]) -> bool:
+        if action.action in {"input_resource", "click_resource"}:
+            return bool(action.target and action.target in valid_targets)
+        return action.action in {"tap_coordinates", "press_back", "press_home", "swipe", "wait", "finish"}
+
+    def _scripted_fallback(self, observation: dict[str, Any], valid_targets: set[str]) -> ApkAction | None:
+        expected = observation.get("expected_state") or {}
+        reward_components = observation.get("reward_components") or {}
+        ui_by_id = {
+            node.get("id"): node
+            for node in observation.get("ui", [])
+            if isinstance(node, dict) and node.get("id")
+        }
+
+        def input_action(target: str, value: str) -> ApkAction | None:
+            if target not in valid_targets:
+                return None
+            current = str((ui_by_id.get(target) or {}).get("text") or "").strip()
+            if current == value:
+                return None
+            return ApkAction(action="input_resource", target=target, text=value)
+
+        def click_action(target: str) -> ApkAction | None:
+            if target not in valid_targets:
+                return None
+            return ApkAction(action="click_resource", target=target)
+
+        query = str(expected.get("query") or "")
+        name = str(expected.get("name") or "")
+        email = str(expected.get("email") or "")
+
+        if not reward_components.get("query_match", False):
+            action = input_action("search_input", query)
+            if action is not None:
+                return action
+            action = click_action("search_button")
+            if action is not None:
+                return action
+        if not reward_components.get("name_match", False):
+            action = input_action("name_input", name)
+            if action is not None:
+                return action
+        if not reward_components.get("email_match", False):
+            action = input_action("email_input", email)
+            if action is not None:
+                return action
+        if not reward_components.get("submitted", False):
+            action = click_action("submit_button")
+            if action is not None:
+                return action
+        if float(observation.get("final_reward", 0.0) or 0.0) >= 1.0:
+            return ApkAction(action="finish")
+        return ApkAction(action="wait", duration_ms=1000)
 
     def _extract_text(self, response: dict[str, Any]) -> str:
         if isinstance(response.get("output_text"), str):

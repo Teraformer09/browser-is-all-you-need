@@ -7,6 +7,7 @@ repo remains runnable with plain ADB when AndroidWorld is not installed.
 from __future__ import annotations
 
 import importlib
+import os
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -44,6 +45,55 @@ def require_android_world() -> None:
             "and launch its emulator with the required -grpc port before using "
             "--backend android_world. Import error: " + (status.reason or "unknown")
         )
+
+
+def _resolve_android_world_a11y_method(controller_mod: Any) -> Any:
+    raw = os.environ.get("ANDROID_WORLD_A11Y_METHOD", "uiautomator").strip().lower()
+    methods = {
+        "a11y_forwarder_app": controller_mod.A11yMethod.A11Y_FORWARDER_APP,
+        "forwarder": controller_mod.A11yMethod.A11Y_FORWARDER_APP,
+        "uiautomator": controller_mod.A11yMethod.UIAUTOMATOR,
+        "none": controller_mod.A11yMethod.NONE,
+    }
+    if raw not in methods:
+        supported = ", ".join(sorted(methods))
+        raise ValueError(f"Unsupported ANDROID_WORLD_A11Y_METHOD={raw!r}. Use one of: {supported}")
+    return methods[raw]
+
+
+def _create_android_world_controller(
+    controller_mod: Any,
+    console_port: int,
+    adb_path: str,
+    grpc_port: int,
+) -> Any:
+    a11y_method = _resolve_android_world_a11y_method(controller_mod)
+    if a11y_method == controller_mod.A11yMethod.A11Y_FORWARDER_APP:
+        return controller_mod.get_controller(
+            console_port=console_port,
+            adb_path=adb_path,
+            grpc_port=grpc_port,
+        )
+
+    loader_mod = importlib.import_module("android_env.loader")
+    config_mod = importlib.import_module("android_env.components.config_classes")
+    config = config_mod.AndroidEnvConfig(
+        task=config_mod.FilesystemTaskConfig(path=controller_mod._write_default_task_proto()),
+        simulator=config_mod.EmulatorConfig(
+            emulator_launcher=config_mod.EmulatorLauncherConfig(
+                emulator_console_port=console_port,
+                adb_port=console_port + 1,
+                grpc_port=grpc_port,
+            ),
+            adb_controller=config_mod.AdbControllerConfig(adb_path=adb_path),
+        ),
+    )
+    android_env_instance = loader_mod.load(config)
+    return controller_mod.AndroidWorldController(
+        android_env_instance,
+        a11y_method=a11y_method,
+        install_a11y_forwarding_app=False,
+    )
 
 
 class AndroidWorldDummyApkEnv:
@@ -368,7 +418,8 @@ def create_native_android_world_env(
     require_android_world()
     controller_mod = importlib.import_module("android_world.env.android_world_controller")
     interface_mod = importlib.import_module("android_world.env.interface")
-    controller = controller_mod.get_controller(
+    controller = _create_android_world_controller(
+        controller_mod=controller_mod,
         console_port=console_port,
         adb_path=adb_path,
         grpc_port=grpc_port,

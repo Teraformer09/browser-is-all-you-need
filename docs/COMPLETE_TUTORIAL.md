@@ -112,7 +112,7 @@ android_adk_rl_env/
   envs/                 Environment factories and compatibility modules
   policies/             Scripted, random, OpenAI, local RL, VLM policy interfaces
   tasks/                Task definitions and reward contracts
-  training/             Rollout, local RL, SFT helpers
+  training/             Rollout and local RL helpers
 
 dummy_android_app/      Real Java Android APK
 environments/           Prime-style environment package
@@ -611,24 +611,7 @@ python3 -B -m android_adk_rl_env.rl_benchmark \
   --compact
 ```
 
-## 20. SFT Data
-
-Generate bootstrap SFT examples:
-
-```bash
-python3 -B -m android_adk_rl_env.openai_finetune prepare-scripted \
-  --output artifacts/openai/dummy_apk_sft_bootstrap.jsonl
-```
-
-Convert successful rollouts into SFT examples:
-
-```bash
-python3 -B -m android_adk_rl_env.openai_finetune prepare \
-  --rollouts artifacts/rollouts/openai_dummy_apk_rollouts.jsonl \
-  --output artifacts/openai/dummy_apk_sft.jsonl
-```
-
-## 21. Safety Policy
+## 20. Safety Policy
 
 Safety defaults to true.
 
@@ -651,7 +634,7 @@ sharing personal data
 
 The current dummy apps do not perform real payments, real rides, real account changes, OTP, or personal-data workflows.
 
-## 22. Architecture Summary
+## 21. Architecture Summary
 
 Detailed architecture lives in:
 
@@ -676,7 +659,7 @@ Taskset JSONL
   -> Artifact writer
 ```
 
-## 23. Debugging Checklist
+## 22. Debugging Checklist
 
 If unit tests fail:
 
@@ -711,7 +694,7 @@ docker compose -f docker-compose.yml config
 docker compose -f compose.yaml config
 ```
 
-## 24. Beginner To Smart Learning Path
+## 23. Beginner To Smart Learning Path
 
 Follow this sequence:
 

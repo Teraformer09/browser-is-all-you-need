@@ -1,30 +1,122 @@
-# Prime Intellect Mobile Android ADK RL Environment
+# Prime Intellect Android ADK RL Environment
 
-This repo is a real Android RL and evaluation environment built around the APK `com.primeintellect.dummyrl`.
+This repository is a real mobile Android RL and evaluation environment built around the APK `com.primeintellect.dummyrl`.
 
-The environment supports:
+It is now organized as an RL-first codebase:
 
-- Real ADB-backed execution
-- Strict JSON mobile actions
-- Reward verification from durable app state
-- Form and ride-booking dummy tasks
-- Rollout artifacts in `artifacts/runs/`
-- Prime-compatible environment loading
-- Docker runner image for local execution
+- real APK execution through `adb`
+- optional AndroidWorld execution for the interaction layer
+- rollout collection and benchmark artifact generation
+- local RL training and RL benchmarking
+- Prime-compatible environment loading and eval entrypoints
+- no SFT pipeline in this branch
 
-## Verified On 2026-06-13
+## What Happens In A Run
 
-These paths were run successfully against a real emulator:
+The runtime loop is:
 
-- `make build-apk`
-- `make install-apk`
-- `ADB_SERIAL=emulator-5558 make adb-run`
-- `ADB_SERIAL=emulator-5558 make run`
-- `make test`
-- `python3 -m unittest discover -s tests`
-- `docker compose -f docker-compose.yml build mobile-rl-runner`
+```text
+Task
+  -> Environment reset
+  -> Observation
+  -> Policy or model
+  -> Strict JSON action
+  -> Device execution
+  -> Durable APK state read
+  -> Reward calculation
+  -> Artifact write
+```
 
-Verified rollout result:
+For one environment step:
+
+```python
+observation = env.reset()
+result = env.step(action)
+next_observation = result.observation
+reward = result.reward
+done = result.done
+info = result.info
+```
+
+The reward comes from durable app state written by the APK, not from guessed UI heuristics.
+
+## Repo Structure
+
+Main directories:
+
+```text
+android_adk_rl_env/
+  adb_device.py              Real device control
+  apk_env.py                 Step-based APK RL environment
+  android_world_bridge.py    AndroidWorld-backed environment bridge
+  android_world_runner.py    AndroidWorld rollout runner
+  train.py                   OpenAI rollout collection
+  rl_train.py                Local RL training entrypoint
+  rl_benchmark.py            Local RL benchmark entrypoint
+  rollout_runner.py          Multi-task rollout and artifact generation
+  core/                      Actions, observations, reward, artifacts, safety, metrics
+  policies/                  Scripted, OpenAI, random, local RL policy code
+  tasks/                     Form and ride task definitions
+  training/                  Rollout and local RL helpers
+
+dummy_android_app/           Real Android app source
+prime_android_adk_rl_env/    Prime environment loader and eval bridge
+scripts/                     Build, install, run, AndroidWorld, Prime, Docker helpers
+tests/                       Unit and integration tests
+docs/                        Tutorial and architecture notes
+artifacts/                   Run outputs
+```
+
+## Main Runtime Paths
+
+### 1. Unit Tests
+
+Fast local verification:
+
+```bash
+make test
+python3 -m unittest discover -s tests
+```
+
+Validated locally on `2026-06-13`:
+
+```text
+make test: passing
+python3 -m unittest discover -s tests: passing
+Skipped: 1 test
+```
+
+### 2. Real ADB Rollout
+
+This is the main stable path in the repo.
+
+Build and install the APK:
+
+```bash
+make build-apk
+make install-apk
+```
+
+Check the connected emulator or device:
+
+```bash
+adb devices -l
+ADB_SERIAL=emulator-5558 ./scripts/adb_healthcheck.sh
+```
+
+Run one scripted task:
+
+```bash
+ADB_SERIAL=emulator-5558 make adb-run
+```
+
+Run the full rollout suite:
+
+```bash
+ADB_SERIAL=emulator-5558 make run
+```
+
+Validated locally on `2026-06-13`:
 
 ```text
 Rollout run completed
@@ -36,56 +128,152 @@ Artifacts: artifacts/runs/20260613_120253
 Replay: artifacts/runs/20260613_120253/replay.html
 ```
 
-## Quick Start
+### 3. OpenAI Rollout Collection
 
-Run unit tests:
-
-```bash
-make test
-python3 -m unittest discover -s tests
-```
-
-Build and install the APK on the current ADB target:
+Use the OpenAI policy against the APK environment:
 
 ```bash
-make build-apk
-make install-apk
+OPENAI_API_KEY=... python3 -B -m android_adk_rl_env.train \
+  --task dummy_apk \
+  --policy openai \
+  --backend adb \
+  --model gpt-4o-mini \
+  --episodes 1 \
+  --output artifacts/rollouts/openai_dummy_apk_rollouts.jsonl \
+  --compact
 ```
 
-Run the single-task scripted ADB check:
+This path uses:
+
+- strict JSON actions
+- observation compaction
+- reward verification from APK state
+- rollout JSONL output for later analysis
+
+### 4. Local RL Training
+
+Train a local tabular policy:
 
 ```bash
-ADB_SERIAL=emulator-5558 make adb-run
+python3 -B -m android_adk_rl_env.rl_train \
+  --episodes 50 \
+  --eval-episodes 5 \
+  --max-steps 10 \
+  --checkpoint artifacts/rl/dummy_apk_policy.json \
+  --compact
 ```
 
-Run the full real rollout suite:
+Benchmark a saved policy:
 
 ```bash
-ADB_SERIAL=emulator-5558 make run
+python3 -B -m android_adk_rl_env.rl_benchmark \
+  --checkpoint artifacts/rl/dummy_apk_policy.json \
+  --episodes 10 \
+  --output artifacts/rl/dummy_apk_rl_benchmark.jsonl \
+  --compact
 ```
+
+### 5. AndroidWorld Run
+
+AndroidWorld is supported as an interaction backend.
+
+Status in this branch:
+
+- integrated in code
+- real runs were executed
+- still less stable than the plain ADB path
+
+Run it with:
+
+```bash
+ANDROID_WORLD_A11Y_METHOD=uiautomator \
+ANDROID_WORLD_AVD_NAME=AndroidWorld_API_34 \
+CONSOLE_PORT=5558 \
+GRPC_PORT=8558 \
+ADB_SERIAL=emulator-5558 \
+STOP_EMULATOR_AFTER_RUN=1 \
+./scripts/run_android_world_openai.sh
+```
+
+Notes:
+
+- AndroidWorld is used for observation and action execution.
+- ADB is still used for APK install/reset and reading durable app state for reward.
+- `uiautomator` mode is currently the more stable AndroidWorld observation path in this repo.
+
+### 6. Prime Eval
+
+Prime is supported through `prime_android_adk_rl_env`.
+
+Default Prime backend:
+
+```text
+adb
+```
+
+Run Prime eval on the stable ADB path:
+
+```bash
+OPENAI_API_KEY=... ./scripts/run_prime_eval_android_adk.sh
+```
+
+Run Prime eval with AndroidWorld explicitly enabled:
+
+```bash
+PRIME_ANDROID_BACKEND=android_world \
+ANDROID_WORLD_A11Y_METHOD=uiautomator \
+ANDROID_WORLD_AVD_NAME=AndroidWorld_API_34 \
+CONSOLE_PORT=5558 \
+GRPC_PORT=8558 \
+ADB_SERIAL=emulator-5558 \
+START_EMULATOR=1 \
+STOP_EMULATOR_AFTER_RUN=1 \
+./scripts/run_prime_eval_android_adk.sh
+```
+
+Current status:
+
+- Prime interface and environment loading work
+- Prime with `adb` is the safer path
+- Prime with `android_world` is wired, but AndroidWorld runtime stability still needs hardening
+
+## Artifacts
+
+Real rollout runs write artifacts under `artifacts/runs/<run_id>/`.
+
+Typical files:
+
+```text
+config.json
+summary.json
+rollout.jsonl
+reward_trace.jsonl
+final_screen.png
+emulator_run.mp4
+replay.html
+logcat.txt
+device_info.json
+apk_info.json
+```
+
+AndroidWorld runs write under `artifacts/android_world_openai_run/`.
+
+Prime eval writes under `artifacts/prime_eval_android_adk/`.
 
 ## Emulator Setup
 
-List devices:
-
-```bash
-adb devices -l
-```
-
-Healthcheck a chosen emulator:
-
-```bash
-ADB_SERIAL=emulator-5558 ./scripts/adb_healthcheck.sh
-```
-
-If you need a clean emulator, the repo works well with an API 34 AVD. Example:
+Recommended local setup:
 
 ```bash
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 export PATH="$JAVA_HOME/bin:$PATH"
 export ANDROID_SDK_ROOT=/data/Balram/android-sdk
 export ANDROID_AVD_HOME=$PWD/.deps/android_avd
+```
 
+Create an API 34 emulator image:
+
+```bash
 yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
   --sdk_root=$ANDROID_SDK_ROOT \
   "build-tools;34.0.0" \
@@ -96,7 +284,11 @@ printf 'no\n' | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager create avd
   -n AndroidWorld_API_34 \
   -k "system-images;android-34;google_apis;x86_64" \
   --device pixel_6
+```
 
+Start it manually:
+
+```bash
 $ANDROID_SDK_ROOT/emulator/emulator \
   -avd AndroidWorld_API_34 \
   -no-window \
@@ -108,37 +300,36 @@ $ANDROID_SDK_ROOT/emulator/emulator \
   -ports 5558,5559
 ```
 
-## OpenAI And Prime
+## What Is Verified And What Is Not
 
-These paths are implemented, but were not executed in this session because `OPENAI_API_KEY` was not available:
+Verified locally on `2026-06-13`:
 
-```bash
-OPENAI_API_KEY=... python3 -B -m android_adk_rl_env.train \
-  --task dummy_apk \
-  --policy openai \
-  --backend adb \
-  --episodes 1 \
-  --model gpt-4o-mini \
-  --output artifacts/rollouts/openai_dummy_apk_rollouts.jsonl \
-  --compact
-```
+- `make build-apk`
+- `make install-apk`
+- `ADB_SERIAL=emulator-5558 make adb-run`
+- `ADB_SERIAL=emulator-5558 make run`
+- `make test`
+- `python3 -m unittest discover -s tests`
+- `docker compose -f docker-compose.yml build mobile-rl-runner`
 
-```bash
-OPENAI_API_KEY=... ./scripts/run_prime_eval_android_adk.sh
-```
+Implemented in code but not yet a fully stable claim:
 
-## Main Files
+- AndroidWorld OpenAI run as a universally reliable benchmark path
+- Prime eval over AndroidWorld as a fully hardened path
+- universal compatibility with arbitrary models without policy tuning
 
-- `android_adk_rl_env/adb_device.py`: ADB device control and UI/state access
-- `android_adk_rl_env/apk_env.py`: step-based APK environment
-- `android_adk_rl_env/rollout_runner.py`: real rollout suite
-- `android_adk_rl_env/tasks/dummy_apk.py`: form task and reward verification
-- `android_adk_rl_env/tasks/ride_booking.py`: ride task and reward verification
-- `scripts/build_dummy_apk.sh`: APK build/sign path
-- `scripts/install_dummy_apk.sh`: APK install/launch path
-- `scripts/run_rollout.sh`: real rollout entrypoint
+## Important Files
 
-## Docs
+- [android_adk_rl_env/apk_env.py](android_adk_rl_env/apk_env.py)
+- [android_adk_rl_env/adb_device.py](android_adk_rl_env/adb_device.py)
+- [android_adk_rl_env/android_world_bridge.py](android_adk_rl_env/android_world_bridge.py)
+- [android_adk_rl_env/rollout_runner.py](android_adk_rl_env/rollout_runner.py)
+- [android_adk_rl_env/tasks/dummy_apk.py](android_adk_rl_env/tasks/dummy_apk.py)
+- [android_adk_rl_env/rl_train.py](android_adk_rl_env/rl_train.py)
+- [android_adk_rl_env/rl_benchmark.py](android_adk_rl_env/rl_benchmark.py)
+- [prime_android_adk_rl_env/prime_android_adk_rl_env.py](prime_android_adk_rl_env/prime_android_adk_rl_env.py)
+
+## More Docs
 
 - [IMPLEMENTED_AND_WORKING.md](IMPLEMENTED_AND_WORKING.md)
 - [docs/COMPLETE_TUTORIAL.md](docs/COMPLETE_TUTORIAL.md)

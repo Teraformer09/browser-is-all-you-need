@@ -17,5 +17,4 @@ benchmark_alignment:
   shaped_rewards: true
   train_eval_splits: true
   seeded_randomization_available: true
-  sft_export_available: true
   replay_buffer_available: true
