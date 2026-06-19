@@ -33,3 +33,6 @@ visual_artifacts/
 .deps/
 .android/
 outputs/
+
+# External reference repo (analysis only)
+SWE_RL/
