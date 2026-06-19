@@ -150,6 +150,36 @@ This path uses:
 - reward verification from APK state
 - rollout JSONL output for later analysis
 
+### 3.1 Proof Benchmark Run (Real ADB, Repeatability)
+
+Run the proof benchmark with repeated attempts per task family:
+
+```bash
+./scripts/run_proof_benchmark.sh \
+  --backend adb \
+  --policy scripted \
+  --attempts-per-instance 20 \
+  --pass-k 1 2 5 10 \
+  --bootstrap-samples 1000 \
+  --output artifacts/benchmarks/proof
+```
+
+This writes:
+
+- `summary.json` with benchmark metadata
+- `task_results.jsonl` with per-attempt outcomes
+- `metrics.json` with averaged success and step metrics
+- `pass_at_k.json` with `pass@k`, `safe_pass@k`, and reliability (`reliable@k`, `safe_reliable@k`)
+- `confidence_intervals.json` when `--bootstrap-samples` is set to a positive value
+
+Make targets:
+
+```bash
+make benchmark-quick
+make benchmark-proof
+make benchmark-release
+```
+
 ### 4. Local RL Training
 
 Train a local tabular policy:
