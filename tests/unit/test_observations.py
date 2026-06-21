@@ -19,6 +19,7 @@ class ObservationTest(unittest.TestCase):
         for key in ["task", "screen", "step", "max_steps", "elements", "last_action", "last_error"]:
             self.assertIn(key, observation)
         self.assertEqual(observation["elements"][0]["element_id"], "submit_button")
+        self.assertEqual(observation["schema_version"], "mobile_observation.v1")
 
 
 if __name__ == "__main__":

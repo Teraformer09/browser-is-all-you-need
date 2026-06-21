@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENV_DIR="${ANDROID_WORLD_VENV:-$ROOT_DIR/.venv}"
 ANDROID_WORLD_SRC="${ANDROID_WORLD_SRC:-$ROOT_DIR/.deps/android_world}"
 ANDROID_WORLD_REPO="${ANDROID_WORLD_REPO:-https://github.com/google-research/android_world.git}"
+ANDROID_WORLD_REF="${ANDROID_WORLD_REF:-d9c569f764b3a5629321858de03ff653d0f24056}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 SDK_ROOT="${ANDROID_SDK_ROOT:-/data/Balram/android-sdk}"
 JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-21-openjdk-amd64}"
@@ -47,6 +48,7 @@ if [[ ! -d "$ANDROID_WORLD_SRC/.git" ]]; then
 else
   git -C "$ANDROID_WORLD_SRC" pull --ff-only
 fi
+git -C "$ANDROID_WORLD_SRC" checkout "$ANDROID_WORLD_REF"
 
 "$VENV_DIR/bin/python" -m pip install -r "$ANDROID_WORLD_SRC/requirements.txt"
 "$VENV_DIR/bin/python" -m pip install --no-build-isolation -e "$ANDROID_WORLD_SRC"
@@ -86,3 +88,4 @@ echo "AndroidWorld install ready"
 echo "SDK_ROOT=$SDK_ROOT"
 echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME"
 echo "AVD_NAME=$AVD_NAME"
+echo "ANDROID_WORLD_REF=$ANDROID_WORLD_REF"

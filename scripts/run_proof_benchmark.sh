@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COLLECT_SCREENSHOT="${COLLECT_SCREENSHOT:-0}"
 RUNNER_TIMEOUT_S="${PROOF_DEVICE_TIMEOUT_S:-90}"
+SKIP_APK_INSTALL="${SKIP_APK_INSTALL:-0}"
 
 ADB_PATH="${ADB_PATH:-adb}"
 ADB_SERIAL="${ADB_SERIAL:-}"
@@ -73,8 +74,10 @@ cd "$ROOT_DIR"
 
 check_adb_device
 
-bash "$ROOT_DIR/scripts/build_dummy_apk.sh" >/dev/null
-bash "$ROOT_DIR/scripts/install_dummy_apk.sh" >/dev/null
+if [[ "$SKIP_APK_INSTALL" != "1" ]]; then
+  bash "$ROOT_DIR/scripts/build_dummy_apk.sh" >/dev/null
+  bash "$ROOT_DIR/scripts/install_dummy_apk.sh" >/dev/null
+fi
 
 RUN_OUTPUT="$(python3 -B -m android_adk_rl_env.proof_benchmark "$@")"
 echo "$RUN_OUTPUT"

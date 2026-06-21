@@ -80,19 +80,17 @@ Quickstart:
 
 ```bash
 make test
-make run
+ADB_SERIAL=127.0.0.1:15555 RESET_MODE=full ./scripts/mobile_rl.sh rollout --pool-size 1 --no-openai --json
 ```
 
 Expected rollout output:
 
 ```text
-Rollout run completed
-Run ID: ...
-Backend: adb
-Tasks: 4
-Success rate: 1.0
-Artifacts: artifacts/runs/{run_id}
-Replay: artifacts/runs/{run_id}/replay.html
+Current real validated rollout result on the demo APK:
+success_rate=0.5
+success_count=2
+task_count=4
+artifacts=artifacts/runs/20260621_172107
 ```
 
 Open the replay file in a browser:

@@ -9,12 +9,18 @@ def summarize_task_results(task_results: list[dict[str, Any]]) -> dict[str, Any]
     count = len(task_results)
     rewards = [float(result.get("reward", result.get("final_reward", 0.0)) or 0.0) for result in task_results]
     steps = [int(result.get("steps", 0) or 0) for result in task_results]
+    reset_durations = [
+        float((result.get("reset_metadata") or {}).get("duration_seconds", 0.0) or 0.0)
+        for result in task_results
+        if result.get("reset_metadata") is not None
+    ]
     prompt_tokens = [int(result.get("total_prompt_tokens", 0) or 0) for result in task_results]
     completion_tokens = [int(result.get("total_completion_tokens", 0) or 0) for result in task_results]
     return {
         "exact_success_rate": _ratio(sum(1 for result in task_results if result.get("exact_success")), count),
         "mean_shaped_reward": _mean(rewards),
         "mean_episode_steps": _mean(steps),
+        "mean_reset_duration_seconds": _mean(reset_durations),
         "invalid_action_rate": _ratio(sum(int(result.get("invalid_action_count", 0) or 0) for result in task_results), sum(steps)),
         "safety_block_rate": _ratio(sum(int(result.get("safety_block_count", 0) or 0) for result in task_results), sum(steps)),
         "adb_error_rate": _ratio(sum(int(result.get("adb_error_count", 0) or 0) for result in task_results), sum(steps)),

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -40,18 +42,19 @@ class AdbDevice:
     def name(self) -> str:
         return "adb"
 
-    def adb(self, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+    def adb(self, *args: str, check: bool = True, timeout_s: int | None = None) -> subprocess.CompletedProcess[str]:
         command = [self.adb_path]
         if self.serial:
             command.extend(["-s", self.serial])
         command.extend(args)
+        effective_timeout = int(timeout_s or os.environ.get("ADB_CMD_TIMEOUT_S", "60"))
         return subprocess.run(
             command,
             check=check,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            timeout=15,
+            timeout=effective_timeout,
         )
 
     def connect(self) -> None:
@@ -104,7 +107,7 @@ class AdbDevice:
                 command.extend(["--ei", key, str(value)])
             else:
                 command.extend(["--es", key, str(value)])
-        self.adb(*command)
+        self.adb(*command, timeout_s=60)
         time.sleep(1.0)
 
     def reset_app(self, episode_id: str | None = None, extras: dict[str, str | int | bool] | None = None) -> None:
@@ -114,17 +117,63 @@ class AdbDevice:
         self.launch_app(episode_id=episode_id, extras=extras)
         self.wait_for_ui_ready()
 
+    def is_emulator(self) -> bool:
+        if self.serial and self.serial.startswith("emulator-"):
+            return True
+        result = self.adb("shell", "getprop", "ro.kernel.qemu", check=False)
+        return result.stdout.strip() == "1"
+
+    def snapshot_exists(self, snapshot_name: str) -> bool:
+        if not self.is_emulator():
+            return False
+        result = self.adb("emu", "avd", "snapshot", "list", check=False)
+        lines = {line.strip() for line in result.stdout.splitlines() if line.strip()}
+        return snapshot_name in lines
+
+    def save_snapshot(self, snapshot_name: str) -> None:
+        if not self.is_emulator():
+            raise RuntimeError("snapshot save requires an emulator-backed device")
+        self.adb("emu", "avd", "snapshot", "save", snapshot_name)
+        time.sleep(1.0)
+
+    def restore_snapshot(self, snapshot_name: str) -> None:
+        if not self.is_emulator():
+            raise RuntimeError("snapshot restore requires an emulator-backed device")
+        self.adb("emu", "avd", "snapshot", "load", snapshot_name)
+        self.wait_for_ready()
+
     def wait_for_ui_ready(self) -> None:
         deadline = time.time() + 10.0
         last_error: Exception | None = None
         while time.time() < deadline:
             try:
+                if self.dismiss_blocking_system_dialog():
+                    time.sleep(0.5)
+                    continue
+                focus_package = self.current_focus_package()
+                if focus_package is not None and focus_package != self.package:
+                    time.sleep(0.5)
+                    continue
                 self.find_resource("status_text")
                 return
             except Exception as exc:  # noqa: BLE001
                 last_error = exc
                 time.sleep(0.5)
         raise RuntimeError(f"UI did not become ready: {last_error}")
+
+    def current_focus_package(self) -> str | None:
+        result = self.adb("shell", "dumpsys", "window", "windows", check=False)
+        text = result.stdout
+        for line in text.splitlines():
+            if "mCurrentFocus" not in line and "mFocusedApp" not in line:
+                continue
+            marker = " u0 "
+            if marker in line:
+                fragment = line.split(marker, 1)[1]
+                package_activity = fragment.split()[0]
+                if "/" in package_activity:
+                    return package_activity.split("/", 1)[0]
+        return None
 
     def click_resource(self, resource_name: str) -> None:
         node = self.find_resource(resource_name)
@@ -165,8 +214,19 @@ class AdbDevice:
         time.sleep(0.3)
 
     def dump_ui(self) -> str:
-        self.adb("shell", "uiautomator", "dump", "/sdcard/window.xml")
-        return self.adb("exec-out", "cat", "/sdcard/window.xml").stdout
+        last_error: Exception | None = None
+        for _ in range(3):
+            try:
+                result = self.adb("shell", "uiautomator", "dump", "/sdcard/window.xml", check=False, timeout_s=30)
+                if result.returncode not in {0, 137}:
+                    raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "uiautomator dump failed")
+                xml_text = self.adb("exec-out", "cat", "/sdcard/window.xml", timeout_s=30).stdout
+                if xml_text.strip():
+                    return xml_text
+            except Exception as exc:  # noqa: BLE001
+                last_error = exc
+            time.sleep(0.5)
+        raise RuntimeError(f"failed to dump ui: {last_error}")
 
     def find_resource(self, resource_name: str) -> UiNode:
         full_id = f"{self.package}:id/{resource_name}"
@@ -182,11 +242,37 @@ class AdbDevice:
                 )
         raise LookupError(f"resource not found: {full_id}")
 
+    def dismiss_blocking_system_dialog(self) -> bool:
+        for resource_id in ("android:id/aerr_close", "android:id/button1"):
+            try:
+                node = self.find_any_resource(resource_id)
+            except LookupError:
+                continue
+            x, y = node.center
+            self.adb("shell", "input", "tap", str(x), str(y))
+            time.sleep(0.5)
+            return True
+        return False
+
+    def find_any_resource(self, full_resource_id: str) -> UiNode:
+        xml_text = self.dump_ui()
+        root = ET.fromstring(xml_text)
+        for elem in root.iter("node"):
+            if elem.attrib.get("resource-id") != full_resource_id:
+                continue
+            return UiNode(
+                resource_id=full_resource_id,
+                text=elem.attrib.get("text", ""),
+                bounds=self._parse_bounds(elem.attrib["bounds"]),
+                focused=elem.attrib.get("focused") == "true",
+            )
+        raise LookupError(f"resource not found: {full_resource_id}")
+
     def _resource_nodes_from_xml(self, xml_text: str, resource_names: tuple[str, ...]) -> list[dict[str, object]]:
         wanted = {f"{self.package}:id/{name}": name for name in resource_names}
         root = ET.fromstring(xml_text)
         nodes: list[dict[str, object]] = []
-        for elem in root.iter("node"):
+        for index, elem in enumerate(root.iter("node")):
             full_id = elem.attrib.get("resource-id", "")
             if full_id not in wanted:
                 continue
@@ -199,6 +285,7 @@ class AdbDevice:
             nodes.append(
                 {
                     "id": wanted[full_id],
+                    "element_index": index,
                     "resource_id": node.resource_id,
                     "text": node.text,
                     "bounds": list(node.bounds),
@@ -242,6 +329,13 @@ class AdbDevice:
             "timezone": self.adb("shell", "getprop", "persist.sys.timezone", check=False).stdout.strip(),
             "package": self.package,
         }
+
+    def clone_with(self, **overrides: Any) -> "AdbDevice":
+        return AdbDevice(
+            adb_path=str(overrides.get("adb_path", self.adb_path)),
+            package=str(overrides.get("package", self.package)),
+            serial=overrides.get("serial", self.serial),
+        )
 
     def _parse_bounds(self, raw: str) -> tuple[int, int, int, int]:
         match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", raw)

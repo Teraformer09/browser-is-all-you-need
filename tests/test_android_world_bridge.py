@@ -103,9 +103,20 @@ class MockAdbDevice:
     def launch_app(self, episode_id: str | None = None) -> None:
         self.episode_id = episode_id or self.episode_id
 
-    def reset_app(self, episode_id: str | None = None) -> None:
+    def reset_app(self, episode_id: str | None = None, extras: dict[str, object] | None = None) -> None:
+        del extras
         self.clear_app_data()
         self.launch_app(episode_id=episode_id)
+
+    def snapshot_exists(self, snapshot_name: str) -> bool:
+        del snapshot_name
+        return False
+
+    def save_snapshot(self, snapshot_name: str) -> None:
+        del snapshot_name
+
+    def restore_snapshot(self, snapshot_name: str) -> None:
+        del snapshot_name
 
     def read_shared_prefs(self) -> str:
         submitted = "true" if self.submitted else "false"
@@ -170,6 +181,14 @@ class TestAndroidWorldBridge(unittest.TestCase):
 
         self.assertEqual(rollouts[0]["final_observation"]["backend"], "android_world")
         self.assertEqual(rollouts[0]["steps"], 2)
+
+    def test_observation_schema_is_standardized(self) -> None:
+        env = self.make_env()
+        observation = env.reset()
+
+        self.assertEqual(observation["schema_version"], "mobile_observation.v1")
+        self.assertEqual(observation["backend"], "android_world")
+        self.assertIn("ui", observation)
 
 
 if __name__ == "__main__":

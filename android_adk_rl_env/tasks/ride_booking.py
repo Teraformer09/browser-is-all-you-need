@@ -7,6 +7,7 @@ from dataclasses import dataclass, field, replace
 from typing import Any
 
 from android_adk_rl_env.adb_device import AdbDevice
+from android_adk_rl_env.reset_manager import reset_task_device
 from android_adk_rl_env.tasks.dummy_apk import new_episode_id
 
 
@@ -92,7 +93,7 @@ class RideBookingTask:
         del device
 
     def run_scripted(self, device: AdbDevice) -> dict[str, Any]:
-        device.reset_app(episode_id=self.episode_id, extras=self.launch_extras())
+        reset_metadata = reset_task_device(self, device).to_dict()
 
         trajectory: list[dict[str, str]] = []
         self._record(trajectory, "input_resource", "pickup_input", self.pickup)
@@ -132,7 +133,9 @@ class RideBookingTask:
             device.click_resource("cancel_ride_button")
 
         prefs = device.read_shared_prefs()
-        reward = self.reward_from_prefs(prefs)
+        reward = self.shaped_reward_from_prefs(prefs)
+        final_reward = self.reward_from_prefs(prefs)
+        reward_components = self.reward_components_from_prefs(prefs)
         status_node = device.find_resource("final_status_text")
 
         return {
@@ -141,8 +144,11 @@ class RideBookingTask:
             "episode_id": self.episode_id,
             "goal": self.goal,
             "package": self.package,
-            "success": reward >= 1.0,
+            "success": final_reward >= 1.0,
             "reward": reward,
+            "final_reward": final_reward,
+            "reward_components": reward_components,
+            "reset_metadata": reset_metadata,
             "status_text": status_node.text,
             "shared_prefs": prefs,
             "trajectory": trajectory,

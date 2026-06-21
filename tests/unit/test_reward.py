@@ -1,6 +1,7 @@
 import unittest
 
 from android_adk_rl_env.tasks.dummy_apk import DummyApkFormSearchTask
+from android_adk_rl_env.tasks.ride_booking import RideBookingTask
 
 
 class EpisodeSafeRewardTest(unittest.TestCase):
@@ -73,6 +74,24 @@ class EpisodeSafeRewardTest(unittest.TestCase):
         self.assertEqual(full, 1.0)
         self.assertGreater(partial, 0.0)
         self.assertLess(partial, 1.0)
+
+
+class RideRewardGranularityTest(unittest.TestCase):
+    def test_ride_task_returns_fractional_reward_for_partial_progress(self) -> None:
+        task = RideBookingTask(episode_id="ride_ep")
+        prefs = """<map>
+<string name="episode_id">ride_ep</string>
+<string name="ride_pickup">Sector 62</string>
+<string name="ride_drop">Noida City Centre</string>
+<string name="selected_ride">Mini</string>
+<boolean name="ride_confirmed" value="false" />
+<string name="screen">ride_options</string>
+</map>"""
+        shaped = task.shaped_reward_from_prefs(prefs)
+        exact = task.reward_from_prefs(prefs)
+        self.assertGreater(shaped, 0.0)
+        self.assertLess(shaped, 1.0)
+        self.assertEqual(exact, 0.0)
 
 
 if __name__ == "__main__":

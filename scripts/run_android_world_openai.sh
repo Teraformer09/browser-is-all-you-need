@@ -75,6 +75,10 @@ start_emulator_if_needed() {
     wait_for_boot
     return
   fi
+  if [[ ! -e /dev/kvm ]]; then
+    echo "/dev/kvm is required for emulator startup on the supported scaling path." >&2
+    exit 1
+  fi
   if adb_cmd get-state >/dev/null 2>&1; then
     wait_for_boot
     return
@@ -88,7 +92,7 @@ start_emulator_if_needed() {
     -no-audio \
     -no-boot-anim \
     -gpu swiftshader_indirect \
-    -no-snapshot \
+    -no-snapshot-load \
     -grpc "$GRPC_PORT" \
     -ports "$CONSOLE_PORT,$ADB_PORT" \
     >"$EMULATOR_LOG" 2>&1 &

@@ -4,8 +4,23 @@ from __future__ import annotations
 
 import json
 import time
+from copy import deepcopy
+from dataclasses import dataclass
 
 from android_adk_rl_env.tasks.dummy_apk import DummyApkFormSearchTask
+
+
+@dataclass
+class MockUiNode:
+    resource_id: str
+    text: str
+    bounds: tuple[int, int, int, int]
+    focused: bool = False
+
+    @property
+    def center(self) -> tuple[int, int]:
+        left, top, right, bottom = self.bounds
+        return ((left + right) // 2, (top + bottom) // 2)
 
 
 class MockAdbDevice:
@@ -14,6 +29,8 @@ class MockAdbDevice:
     def __init__(self, task: DummyApkFormSearchTask | None = None, **kwargs: object) -> None:
         del kwargs
         self.task = task or DummyApkFormSearchTask()
+        self.snapshots: dict[str, dict[str, object]] = {}
+        self.fail_snapshot_restore = False
         self.reset_state()
 
     def reset_state(self) -> None:
@@ -64,6 +81,19 @@ class MockAdbDevice:
     def reset_app(self, episode_id: str | None = None, extras: dict[str, str | int | bool] | None = None) -> None:
         self.clear_app_data()
         self.launch_app(episode_id=episode_id, extras=extras)
+
+    def snapshot_exists(self, snapshot_name: str) -> bool:
+        return snapshot_name in self.snapshots
+
+    def save_snapshot(self, snapshot_name: str) -> None:
+        self.snapshots[snapshot_name] = self._capture_state()
+
+    def restore_snapshot(self, snapshot_name: str) -> None:
+        if self.fail_snapshot_restore:
+            raise RuntimeError("forced snapshot restore failure")
+        if snapshot_name not in self.snapshots:
+            raise RuntimeError(f"missing snapshot: {snapshot_name}")
+        self._restore_state(self.snapshots[snapshot_name])
 
     def wait_for_ui_ready(self) -> None:
         return None
@@ -143,6 +173,18 @@ class MockAdbDevice:
     def dump_ui(self) -> str:
         return "<hierarchy />"
 
+    def find_resource(self, resource_name: str) -> MockUiNode:
+        for node in self.dump_resource_nodes((resource_name,)):
+            if node["id"] == resource_name:
+                bounds = tuple(int(value) for value in (node.get("bounds") or [0, 0, 10, 10]))
+                return MockUiNode(
+                    resource_id=str(node["resource_id"]),
+                    text=str(node.get("text", "")),
+                    bounds=bounds,  # type: ignore[arg-type]
+                    focused=bool(node.get("focused", False)),
+                )
+        raise LookupError(f"resource not found: {resource_name}")
+
     def dump_resource_nodes(self, resource_names: tuple[str, ...]) -> list[dict[str, object]]:
         values = {
             "search_input": self.query,
@@ -174,6 +216,7 @@ class MockAdbDevice:
         return [
             {
                 "id": name,
+                "element_index": index,
                 "resource_id": f"{self.task.package}:id/{name}",
                 "text": values.get(name, ""),
                 "focused": self.focus == name,
@@ -182,7 +225,7 @@ class MockAdbDevice:
                 "class_name": "android.widget.EditText" if name.endswith("_input") else "android.widget.TextView",
                 "clickable": not name.endswith("_text"),
             }
-            for name in resource_names
+            for index, name in enumerate(resource_names)
         ]
 
     def read_shared_prefs(self) -> str:
@@ -265,3 +308,31 @@ class MockAdbDevice:
             },
             sort_keys=True,
         )
+
+    def _capture_state(self) -> dict[str, object]:
+        return deepcopy(
+            {
+                "episode_id": self.episode_id,
+                "query": self.query,
+                "name_text": self.name_text,
+                "email": self.email,
+                "submitted": self.submitted,
+                "ride_pickup": self.ride_pickup,
+                "ride_drop": self.ride_drop,
+                "selected_ride": self.selected_ride,
+                "payment": self.payment,
+                "coupon": self.coupon,
+                "ride_confirmed": self.ride_confirmed,
+                "ride_cancelled": self.ride_cancelled,
+                "screen": self.screen,
+                "focus": self.focus,
+                "last_tap": self.last_tap,
+                "updated_at_ms": self.updated_at_ms,
+                "seed": self.seed,
+                "debug_state_text": self.debug_state_text,
+            }
+        )
+
+    def _restore_state(self, state: dict[str, object]) -> None:
+        for key, value in state.items():
+            setattr(self, key, value)

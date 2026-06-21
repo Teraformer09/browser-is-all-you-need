@@ -16,6 +16,8 @@ def build_observation(
 ) -> dict[str, Any]:
     elements = [_compact_element(node) for node in raw.get("ui", [])]
     observation: dict[str, Any] = {
+        "schema_version": "mobile_observation.v1",
+        "backend": raw.get("backend", "adb"),
         "task": raw.get("goal") or raw.get("task"),
         "task_id": raw.get("task_id"),
         "episode_id": raw.get("episode_id"),
@@ -27,8 +29,10 @@ def build_observation(
         "last_action": raw.get("last_action"),
         "last_error": raw.get("last_error"),
         "reward": raw.get("reward"),
+        "final_reward": raw.get("final_reward"),
         "exact_success": raw.get("exact_success", raw.get("final_reward", 0.0) >= 1.0),
         "reward_components": raw.get("reward_components", {}),
+        "reset_metadata": raw.get("reset_metadata"),
     }
     if mode in {"full_ui_tree", "hybrid", "screenshot_ui_tree"}:
         observation["ui"] = raw.get("ui", [])
@@ -43,6 +47,7 @@ def build_observation(
 def _compact_element(node: dict[str, Any]) -> dict[str, Any]:
     element_id = node.get("id") or _local_resource_name(node.get("resource_id"))
     return {
+        "element_index": node.get("element_index"),
         "element_id": element_id,
         "text": node.get("text", ""),
         "role": node.get("class_name", node.get("role", "")),

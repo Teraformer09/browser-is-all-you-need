@@ -1,6 +1,6 @@
 # SWE-RL Style Architecture Mapping (Mobile Variant)
 
-Branch: `swe-rl-architecture`
+Branch: `feature/mobile-rl-improvement-plan`
 
 I cloned the reference repo to:
 - `/data/Balram/prime-intellect-android-adk-rl-environments/SWE_RL`
@@ -19,40 +19,51 @@ I cloned the reference repo to:
 - Task materialization + benchmark assets:
   - `SWE_RL/tasks/*`, `w8_storage/*`
 
-## Recommended mobile adaptation plan (incremental)
+## Implemented in this repo
 
-1. Keep current Android environment package as the equivalent of `w8_rl`:
-   - `android_adk_rl_env/` (already exists)
-2. Introduce a light orchestration CLI, mirroring the SWE-RL style:
-   - new `scripts/mobile_rl.sh` with subcommands:
-     - `benchmark proof|quick|release`
-     - `rollout`
-     - `health`
-     - `preflight`
-3. Create a thin config layer for runs:
-   - move hardcoded benchmark settings into `configs/mobile/*.json` or `.yaml`
-4. Add a dedicated `runs/` artifact layout:
-   - keep real outputs under `artifacts/mobile_runs/<run_id>/`
-   - standard files: `summary.json`, `task_results.jsonl`, `rollout.jsonl`, `reward_trace.jsonl`, `replay.html`
-5. Keep emulator lifecycle minimal initially:
-   - rely on local `adb` + existing scripts for app install/healthcheck
-   - avoid replacing existing working `run` path during first iteration
-6. Build training/eval hooks only after benchmark and rollout are stable:
-   - future: policy adapters for RL training entry points
+The SWE-RL control pattern is now implemented in this branch via:
+
+- `configs/mobile/orchestrator.env` (central, editable defaults)
+- `scripts/mobile_rl.sh` (single orchestrator CLI)
+- `scripts/run_proof_benchmark.sh` + real ADB preflight as benchmark runner
+- Existing AndroidWorld and Prime execution scripts, now wired through orchestrator commands
+
+Current `mobile_rl.sh` supports:
+
+- `preflight` and `health`
+- `benchmark proof|quick|release`
+- `rollout`
+- `prime-eval`
+- `android-world`
+- `pipeline`
+
+Additional improvements now layered onto that SWE-RL-style control surface:
+
+- `POOL_SIZE`-aware rollout and benchmark execution
+- snapshot-first reset orchestration with full-reset fallback
+- KVM-aware preflight checks
+- standardized observation schema across ADB and AndroidWorld
+- benchmark/rollout artifact summaries that include reset timing
+
+`pipeline` follows a SWE-RL style staged flow:
+
+1. preflight
+2. benchmark (with screenshot collection)
+3. rollout
+4. optional Prime eval
+5. optional AndroidWorld OpenAI
+
+Defaults are controlled by `configs/mobile/orchestrator.env`.
+
+## Current Validation State
+
+- The orchestrator pattern is implemented and in active use.
+- Real ADB preflight, benchmark, and rollout were re-run on `2026-06-21`.
+- The live form-task path is working on the demo APK.
+- The live ride-booking path still needs more task-specific debugging.
 
 ## Immediate concrete next steps
 
-- Verify branch has reference only for analysis and no accidental file collisions:
-  - `git status`
-- Add baseline mobile orchestrator script:
-  - `scripts/mobile_rl.sh`
-- Convert one existing path to config-driven execution:
-  - `proof` benchmark flow
-- Add simple docs:
-  - `docs/mobilesdk_swe_rl_roadmap.md`.
-
-## Important guardrails
-
-- Keep the current real-ADB enforced benchmark wrapper as-is (already now includes device checks).
-- Do not commit the cloned reference repo unless explicitly requested; keep it as local analysis reference.
-
+- Keep `mobile_rl.sh` as the canonical entrypoint for all mobile execution.
+- Finish the ride-booking scripted-task fixes on the live emulator path.
+- Revalidate Prime eval and AndroidWorld full runs after the runtime hardening changes.

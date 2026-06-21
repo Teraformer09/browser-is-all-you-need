@@ -11,6 +11,7 @@ from android_adk_rl_env.core.actions import ActionValidationError, MobileAction
 from android_adk_rl_env.core.observations import ObservationMode, build_observation
 from android_adk_rl_env.core.safety import SafetyPolicy
 from android_adk_rl_env.env import StepResult
+from android_adk_rl_env.reset_manager import reset_task_device
 from android_adk_rl_env.tasks.dummy_apk import DummyApkFormSearchTask
 
 ApkActionName = Literal[
@@ -130,7 +131,7 @@ class DummyApkEnv:
         device: AdbDevice | None = None,
         max_steps: int | None = None,
         shaped_rewards: bool = True,
-        observation_mode: ObservationMode = "compact_text",
+        observation_mode: ObservationMode = "full_ui_tree",
         safe_mode: bool = True,
         invalid_action_penalty: float = -0.05,
     ) -> None:
@@ -150,6 +151,7 @@ class DummyApkEnv:
         self.forbidden_action_seen = False
         self.finish_after_success = True
         self.ui_tree_xml: str | None = None
+        self.last_reset_metadata: dict[str, Any] | None = None
 
     def reset(self) -> dict[str, Any]:
         self.task = self.task.new_episode()
@@ -162,19 +164,10 @@ class DummyApkEnv:
         self.forbidden_action_seen = False
         self.finish_after_success = True
         self.ui_tree_xml = None
+        self.last_reset_metadata = None
         try:
             self.task.initialize_task(self.device)
-            if hasattr(self.device, "reset_app"):
-                self.device.reset_app(episode_id=self.task.episode_id, extras=self.task.launch_extras())
-            else:
-                self.device.wait_for_device()
-                self.device.clear_app_data()
-                try:
-                    self.device.launch_app(episode_id=self.task.episode_id, extras=self.task.launch_extras())
-                except TypeError:
-                    if hasattr(self.device, "episode_id"):
-                        self.device.episode_id = self.task.episode_id
-                    self.device.launch_app()
+            self.last_reset_metadata = reset_task_device(self.task, self.device).to_dict()
             self.task.reset_episode(self.device)
         except Exception as exc:  # noqa: BLE001
             self.done = True
@@ -298,6 +291,7 @@ class DummyApkEnv:
             "exact_success": self.task.verify_success({"exact_success": final_reward >= 1.0, "reward_components": components}),
             "screen": apk_state.get("screen") or self._infer_screen(ui_nodes),
             "shared_prefs_present": bool(prefs_xml.strip()),
+            "reset_metadata": self.last_reset_metadata,
         }
         raw.update(build_observation(raw, mode=self.observation_mode))
         return raw

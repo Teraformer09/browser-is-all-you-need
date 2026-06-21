@@ -8,6 +8,7 @@ and confidence intervals.
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import json
 import math
 import os
@@ -21,6 +22,7 @@ from typing import Any
 
 from android_adk_rl_env.adb_device import AdbDevice
 from android_adk_rl_env.apk_env import DummyApkEnv
+from android_adk_rl_env.device_pool import DevicePool, DeviceSpec
 from android_adk_rl_env.policies.openai_policy import OpenAIActionPolicy
 from android_adk_rl_env.policies.scripted_policy import ScriptedApkPolicy
 from android_adk_rl_env.tasks.dummy_apk import DummyApkFormSearchTask
@@ -38,6 +40,7 @@ def run_proof_benchmark(
     bootstrap_samples: int = 0,
     bootstrap_seed: int = 17230,
     install_check: bool = True,
+    pool_size: int = 1,
 ) -> dict[str, Any]:
     pass_k = pass_k or [1, 2, 5, 10]
     pass_k = sorted(set(int(value) for value in pass_k if int(value) > 0))
@@ -58,45 +61,25 @@ def run_proof_benchmark(
 
     attempt_rows: list[dict[str, Any]] = []
     bootstrap_rng = random.Random(bootstrap_seed)
-    for spec in tasks:
-        for attempt in range(attempts_per_instance):
-            task = spec["factory"](attempt)
-            attempt_started = time.perf_counter()
-            try:
-                if spec["type"] == "form":
-                    result = _run_form_task(task=task, policy=policy, max_steps=max_steps)
-                elif spec["type"] == "ride":
-                    result = _run_ride_task(task=task, policy=policy)
-                else:
-                    raise RuntimeError(f"unknown task type: {spec['type']}")
-            except Exception as exc:  # noqa: BLE001
-                result = _build_failure_row(
-                    exception=exc,
-                    task_id=task.task_id,
-                    episode_id=getattr(task, "episode_id", ""),
-                    instruction=task.goal,
-                    attempt=attempt + 1,
-                    task_family=spec["family_id"],
-                    task_type=spec["type"],
-                    requested_policy=policy,
-                    backend=backend,
+    pool = DevicePool.from_environment(pool_size=pool_size)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=pool.pool_size) as executor:
+        futures = []
+        for spec in tasks:
+            for attempt in range(attempts_per_instance):
+                futures.append(
+                    executor.submit(
+                        _run_benchmark_attempt,
+                        spec,
+                        attempt,
+                        backend,
+                        policy,
+                        max_steps,
+                        pool,
+                    )
                 )
-
-            attempt_ended = time.perf_counter()
-            result = {
-                "task_family": spec["family_id"],
-                "task_type": spec["type"],
-                "instance_attempt": attempt + 1,
-                "attempt_id": f"{spec['family_id']}_{attempt + 1:03d}",
-                "backend": backend,
-                "policy": policy if policy != "openai" or spec["type"] != "ride" else "scripted",
-                "requested_policy": policy,
-                "attempt_latency_seconds": max(0.0, attempt_ended - attempt_started),
-                **result,
-            }
-            if "task_id" not in result:
-                result["task_id"] = task.task_id
-            attempt_rows.append(result)
+        for future in concurrent.futures.as_completed(futures):
+            attempt_rows.append(future.result())
+    attempt_rows.sort(key=lambda row: (str(row.get("task_family", "")), int(row.get("instance_attempt", 0))))
 
     task_groups = _group_by_family(attempt_rows)
     pass_at_k = _compute_pass_at_k(task_groups, pass_k, success_key="exact_success")
@@ -135,6 +118,7 @@ def run_proof_benchmark(
         "pass_k_values": pass_k,
         "bootstrap_samples": bootstrap_samples,
         "bootstrap_seed": bootstrap_seed,
+        "pool_size": pool_size,
         "output_dir": str(run_dir),
         "started_at": started,
         "ended_at": _now_iso(),
@@ -161,6 +145,7 @@ def run_proof_benchmark(
             "bootstrap_seed": bootstrap_seed,
             "max_steps": max_steps,
             "attempts_per_instance": attempts_per_instance,
+            "pool_size": pool_size,
             "pass_k": pass_k,
             "task_families": [spec["family_id"] for spec in tasks],
         })
@@ -223,37 +208,86 @@ def _build_task_specs() -> list[dict[str, Any]]:
     ]
 
 
+def _run_benchmark_attempt(
+    spec: dict[str, Any],
+    attempt: int,
+    backend: str,
+    policy: str,
+    max_steps: int,
+    pool: DevicePool,
+) -> dict[str, Any]:
+    task = spec["factory"](attempt)
+    attempt_started = time.perf_counter()
+    with pool.lease() as device_spec:
+        try:
+            if spec["type"] == "form":
+                result = _run_form_task(task=task, policy=policy, max_steps=max_steps, device_spec=device_spec)
+            elif spec["type"] == "ride":
+                result = _run_ride_task(task=task, policy=policy, device_spec=device_spec)
+            else:
+                raise RuntimeError(f"unknown task type: {spec['type']}")
+        except Exception as exc:  # noqa: BLE001
+            result = _build_failure_row(
+                exception=exc,
+                task_id=task.task_id,
+                episode_id=getattr(task, "episode_id", ""),
+                instruction=task.goal,
+                attempt=attempt + 1,
+                task_family=spec["family_id"],
+                task_type=spec["type"],
+                requested_policy=policy,
+                backend=backend,
+            )
+        attempt_ended = time.perf_counter()
+        result = {
+            "task_family": spec["family_id"],
+            "task_type": spec["type"],
+            "instance_attempt": attempt + 1,
+            "attempt_id": f"{spec['family_id']}_{attempt + 1:03d}",
+            "backend": backend,
+            "policy": policy if policy != "openai" or spec["type"] != "ride" else "scripted",
+            "requested_policy": policy,
+            "attempt_latency_seconds": max(0.0, attempt_ended - attempt_started),
+            "device_serial": device_spec.serial,
+            **result,
+        }
+    if "task_id" not in result:
+        result["task_id"] = task.task_id
+    return result
+
+
 def _run_form_task(
     task: DummyApkFormSearchTask,
     policy: str,
     max_steps: int,
+    device_spec: DeviceSpec | None = None,
 ) -> dict[str, Any]:
     if policy == "scripted":
-        result = task.run_scripted(_adb_device(task.package))
+        result = task.run_scripted(_adb_device(task.package, device_spec=device_spec))
         return {
             "task_id": task.task_id,
             "episode_id": result.get("episode_id", task.episode_id),
             "instruction": task.goal,
             "reward": float(result.get("reward", 0.0)),
-            "final_reward": float(result.get("reward", 0.0)),
-            "exact_success": bool(result.get("success", False)),
+            "final_reward": float(result.get("final_reward", result.get("reward", 0.0))),
+            "exact_success": bool(result.get("final_reward", 0.0) >= 1.0),
             "success": bool(result.get("success", False)),
             "steps": len(result.get("trajectory", [])),
-            "safe_success": bool(result.get("success", False)),
-            "trajectory_quality": "success" if result.get("success") else "failure",
+            "safe_success": bool(result.get("final_reward", 0.0) >= 1.0),
+            "trajectory_quality": "success" if result.get("final_reward", 0.0) >= 1.0 else "partial" if result.get("reward", 0.0) > 0 else "failure",
             "invalid_action_count": 0,
             "safety_block_count": 0,
             "failure_category": "none",
+            "reward_components": result.get("reward_components", {}),
+            "reset_metadata": result.get("reset_metadata"),
             "rollout": {
                 "final_observation": {
-                    "reward_components": {
-                        "exact_success": bool(result.get("success", False)),
-                    },
+                    "reward_components": result.get("reward_components", {}),
                 },
             },
         }
 
-    env = _run_form_env_factory(task, max_steps=max_steps, policy_name=policy)
+    env = _run_form_env_factory(task, max_steps=max_steps, policy_name=policy, device_spec=device_spec)
     rollout = run_rollouts(env_factory=env["factory"], policy_factory=env["policy"], episodes=1)[0]
     final = rollout.get("final_observation", {})
     prompt_tokens = rollout.get("total_prompt_tokens", 0)
@@ -289,11 +323,16 @@ def _estimate_cost_usd(prompt_tokens: int, completion_tokens: int) -> float | No
     return (prompt_tokens_i * 1.0e-6) + (completion_tokens_i * 2.0e-6)
 
 
-def _run_form_env_factory(task: DummyApkFormSearchTask, max_steps: int, policy_name: str) -> dict[str, Any]:
+def _run_form_env_factory(
+    task: DummyApkFormSearchTask,
+    max_steps: int,
+    policy_name: str,
+    device_spec: DeviceSpec | None = None,
+) -> dict[str, Any]:
     def env_factory() -> DummyApkEnv:
         return DummyApkEnv(
             task=task,
-            device=_adb_device(task.package),
+            device=_adb_device(task.package, device_spec=device_spec),
             max_steps=max_steps,
         )
 
@@ -305,7 +344,7 @@ def _run_form_env_factory(task: DummyApkFormSearchTask, max_steps: int, policy_n
     return {"factory": env_factory, "policy": policy_factory}
 
 
-def _run_ride_task(task: RideBookingTask, policy: str) -> dict[str, Any]:
+def _run_ride_task(task: RideBookingTask, policy: str, device_spec: DeviceSpec | None = None) -> dict[str, Any]:
     if policy == "openai":
         _run_form_task(
             DummyApkFormSearchTask(
@@ -334,21 +373,23 @@ def _run_ride_task(task: RideBookingTask, policy: str) -> dict[str, Any]:
             "policy_warning": "openai policy is not supported for ride tasks in proof run; fallback scripted flow",
         }
 
-    result = task.run_scripted(_adb_device(task.package))
+    result = task.run_scripted(_adb_device(task.package, device_spec=device_spec))
     return {
         "task_id": result.get("task_id", task.task_id),
         "episode_id": result.get("episode_id", task.episode_id),
         "instruction": task.goal,
         "reward": float(result.get("reward", 0.0)),
-        "final_reward": float(result.get("reward", 0.0)),
-        "exact_success": bool(result.get("success", False)),
+        "final_reward": float(result.get("final_reward", result.get("reward", 0.0))),
+        "exact_success": bool(result.get("final_reward", 0.0) >= 1.0),
         "success": bool(result.get("success", False)),
         "steps": len(result.get("trajectory", [])),
-        "safe_success": bool(result.get("success", False)),
-        "trajectory_quality": "success" if result.get("success") else "failure",
+        "safe_success": bool(result.get("final_reward", 0.0) >= 1.0),
+        "trajectory_quality": "success" if result.get("final_reward", 0.0) >= 1.0 else "partial" if result.get("reward", 0.0) > 0 else "failure",
         "failure_category": "none",
         "invalid_action_count": 0,
         "safety_block_count": 0,
+        "reward_components": result.get("reward_components", {}),
+        "reset_metadata": result.get("reset_metadata"),
     }
 
 
@@ -482,6 +523,11 @@ def _summarize_rows(
     safe_success_rate = sum(1.0 for row in rows if row.get("safe_success")) / len(rows)
     steps = [int(row.get("steps", 0) or 0) for row in rows]
     latencies = [float(row.get("attempt_latency_seconds", 0.0) or 0.0) for row in rows]
+    reset_durations = [
+        float((row.get("reset_metadata") or {}).get("duration_seconds", 0.0) or 0.0)
+        for row in rows
+        if row.get("reset_metadata") is not None
+    ]
     prompt_tokens = int(sum(int(row.get("total_prompt_tokens", 0) or 0) for row in rows))
     completion_tokens = int(sum(int(row.get("total_completion_tokens", 0) or 0) for row in rows))
     estimated_costs = [float(row.get("estimated_openai_cost_usd", 0.0) or 0.0) for row in rows if row.get("estimated_openai_cost_usd") is not None]
@@ -495,6 +541,7 @@ def _summarize_rows(
         "p95_steps": _percentile(steps, 0.95),
         "avg_latency_seconds": mean(latencies),
         "p95_latency_seconds": _percentile(latencies, 0.95),
+        "avg_reset_duration_seconds": mean(reset_durations) if reset_durations else 0.0,
         "total_prompt_tokens": prompt_tokens,
         "total_completion_tokens": completion_tokens,
         "estimated_openai_cost_usd": total_cost,
@@ -621,11 +668,11 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _adb_device(package: str) -> AdbDevice:
+def _adb_device(package: str, device_spec: DeviceSpec | None = None) -> AdbDevice:
     return AdbDevice(
         adb_path=os.environ.get("ADB_PATH", "adb"),
         package=package,
-        serial=os.environ.get("ADB_SERIAL") or None,
+        serial=device_spec.serial if device_spec is not None else (os.environ.get("ADB_SERIAL") or None),
     )
 
 
@@ -681,6 +728,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Seed for bootstrap intervals.",
     )
     parser.add_argument("--output", default="artifacts/benchmarks", help="Directory where run artifacts are written.")
+    parser.add_argument("--pool-size", type=int, default=int(os.environ.get("POOL_SIZE", "1")))
     parser.add_argument("--compact", action="store_true", help="Print compact JSON only.")
     return parser
 
@@ -696,6 +744,7 @@ def main() -> None:
         output_dir=args.output,
         bootstrap_samples=args.bootstrap_samples,
         bootstrap_seed=args.bootstrap_seed,
+        pool_size=args.pool_size,
     )
     if args.compact:
         print(json.dumps(summary, sort_keys=True))

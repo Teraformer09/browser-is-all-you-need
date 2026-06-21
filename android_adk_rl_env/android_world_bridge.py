@@ -14,8 +14,9 @@ from typing import Any
 
 from android_adk_rl_env.adb_device import AdbDevice
 from android_adk_rl_env.apk_env import ApkAction
-from android_adk_rl_env.core.observations import build_observation
+from android_adk_rl_env.core.observations import ObservationMode, build_observation
 from android_adk_rl_env.env import StepResult
+from android_adk_rl_env.reset_manager import reset_task_device
 from android_adk_rl_env.tasks.dummy_apk import DummyApkFormSearchTask
 
 
@@ -112,6 +113,7 @@ class AndroidWorldDummyApkEnv:
         max_steps: int | None = None,
         shaped_rewards: bool = True,
         wait_to_stabilize: bool = False,
+        observation_mode: ObservationMode = "full_ui_tree",
     ) -> None:
         self.android_env = android_env
         self.task = task or DummyApkFormSearchTask()
@@ -119,24 +121,16 @@ class AndroidWorldDummyApkEnv:
         self.max_steps = max_steps or self.task.max_steps
         self.shaped_rewards = shaped_rewards
         self.wait_to_stabilize = wait_to_stabilize
+        self.observation_mode = observation_mode
         self.steps = 0
         self.done = False
         self.last_error: str | None = None
         self.last_action: dict[str, str | None] | None = None
+        self.last_reset_metadata: dict[str, Any] | None = None
 
     def reset(self) -> dict[str, Any]:
         self.task = self.task.new_episode()
-        if hasattr(self.adb_device, "reset_app"):
-            self.adb_device.reset_app(episode_id=self.task.episode_id)
-        else:
-            self.adb_device.wait_for_device()
-            self.adb_device.clear_app_data()
-            try:
-                self.adb_device.launch_app(episode_id=self.task.episode_id)
-            except TypeError:
-                if hasattr(self.adb_device, "episode_id"):
-                    self.adb_device.episode_id = self.task.episode_id
-                self.adb_device.launch_app()
+        self.last_reset_metadata = reset_task_device(self.task, self.adb_device).to_dict()
         self.steps = 0
         self.done = False
         self.last_error = None
@@ -223,8 +217,9 @@ class AndroidWorldDummyApkEnv:
             "exact_success": final_reward >= 1.0,
             "screen": apk_state.get("screen") or "form",
             "shared_prefs_present": bool(prefs_xml.strip()),
+            "reset_metadata": self.last_reset_metadata,
         }
-        raw.update(build_observation(raw, mode="compact_text"))
+        raw.update(build_observation(raw, mode=self.observation_mode))
         return raw
 
     def close(self) -> None:
@@ -356,6 +351,7 @@ class AndroidWorldDummyApkEnv:
         bbox = getattr(element, "bbox_pixels", None) or getattr(element, "bbox", None)
         bounds = self._bounds_to_list(bbox)
         return {
+            "element_index": getattr(element, "index", None),
             "id": local_id,
             "resource_id": resource_id,
             "resource_name": resource_name,
@@ -412,6 +408,7 @@ def create_native_android_world_env(
     max_steps: int | None = None,
     shaped_rewards: bool = True,
     wait_to_stabilize: bool = False,
+    observation_mode: ObservationMode = "full_ui_tree",
 ) -> AndroidWorldDummyApkEnv:
     """Creates a DummyApkEnv using AndroidWorld's controller + AsyncEnv."""
 
@@ -433,6 +430,7 @@ def create_native_android_world_env(
         max_steps=max_steps,
         shaped_rewards=shaped_rewards,
         wait_to_stabilize=wait_to_stabilize,
+        observation_mode=observation_mode,
     )
 
 
