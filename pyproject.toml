@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "datasets>=2.18.0",
+    "PyYAML>=6.0.1",
     "protobuf>=6.31.1,<7",
     "verifiers>=0.1.11",
 ]
@@ -17,6 +18,7 @@ android-adk-rl-train = "android_adk_rl_env.rl_train:main"
 android-adk-rl-benchmark = "android_adk_rl_env.rl_benchmark:main"
 android-adk-android-world = "android_adk_rl_env.android_world_runner:main"
 android-adk-proof-benchmark = "android_adk_rl_env.proof_benchmark:main"
+mobile-rl = "android_adk_rl_env.cli:main"
 
 [build-system]
 requires = ["hatchling"]

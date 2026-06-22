@@ -85,6 +85,9 @@ class MockAdbDevice:
     def snapshot_exists(self, snapshot_name: str) -> bool:
         return snapshot_name in self.snapshots
 
+    def supports_emulator_console(self) -> bool:
+        return True
+
     def save_snapshot(self, snapshot_name: str) -> None:
         self.snapshots[snapshot_name] = self._capture_state()
 

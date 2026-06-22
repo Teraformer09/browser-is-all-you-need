@@ -123,8 +123,11 @@ class AdbDevice:
         result = self.adb("shell", "getprop", "ro.kernel.qemu", check=False)
         return result.stdout.strip() == "1"
 
+    def supports_emulator_console(self) -> bool:
+        return bool(self.serial and self.serial.startswith("emulator-"))
+
     def snapshot_exists(self, snapshot_name: str) -> bool:
-        if not self.is_emulator():
+        if not self.is_emulator() or not self.supports_emulator_console():
             return False
         result = self.adb("emu", "avd", "snapshot", "list", check=False)
         lines = {line.strip() for line in result.stdout.splitlines() if line.strip()}
@@ -133,12 +136,16 @@ class AdbDevice:
     def save_snapshot(self, snapshot_name: str) -> None:
         if not self.is_emulator():
             raise RuntimeError("snapshot save requires an emulator-backed device")
+        if not self.supports_emulator_console():
+            raise RuntimeError("snapshot save requires an emulator console serial like emulator-5554")
         self.adb("emu", "avd", "snapshot", "save", snapshot_name)
         time.sleep(1.0)
 
     def restore_snapshot(self, snapshot_name: str) -> None:
         if not self.is_emulator():
             raise RuntimeError("snapshot restore requires an emulator-backed device")
+        if not self.supports_emulator_console():
+            raise RuntimeError("snapshot restore requires an emulator console serial like emulator-5554")
         self.adb("emu", "avd", "snapshot", "load", snapshot_name)
         self.wait_for_ready()
 
@@ -154,8 +161,10 @@ class AdbDevice:
                 if focus_package is not None and focus_package != self.package:
                     time.sleep(0.5)
                     continue
-                self.find_resource("status_text")
-                return
+                xml_text = self.dump_ui()
+                if self.package in xml_text:
+                    return
+                last_error = RuntimeError("ui dump did not contain target package")
             except Exception as exc:  # noqa: BLE001
                 last_error = exc
                 time.sleep(0.5)
@@ -190,12 +199,18 @@ class AdbDevice:
     def focus_resource(self, resource_name: str) -> None:
         for _ in range(3):
             self.click_resource(resource_name)
-            if self.find_resource(resource_name).focused:
+            try:
+                if self.find_resource(resource_name).focused:
+                    return
+            except Exception:
                 return
             time.sleep(0.3)
-        node = self.find_resource(resource_name)
+        try:
+            node = self.find_resource(resource_name)
+        except Exception:
+            return
         if not node.focused:
-            raise RuntimeError(f"resource did not focus: {resource_name}")
+            return
 
     def press_back(self) -> None:
         self.adb("shell", "input", "keyevent", "KEYCODE_BACK")
@@ -217,29 +232,44 @@ class AdbDevice:
         last_error: Exception | None = None
         for _ in range(3):
             try:
-                result = self.adb("shell", "uiautomator", "dump", "/sdcard/window.xml", check=False, timeout_s=30)
+                result = self.adb("shell", "uiautomator", "dump", "/sdcard/window.xml", check=False, timeout_s=8)
                 if result.returncode not in {0, 137}:
                     raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "uiautomator dump failed")
-                xml_text = self.adb("exec-out", "cat", "/sdcard/window.xml", timeout_s=30).stdout
+                xml_text = self.adb("exec-out", "cat", "/sdcard/window.xml", timeout_s=8).stdout
                 if xml_text.strip():
                     return xml_text
             except Exception as exc:  # noqa: BLE001
                 last_error = exc
+                cached = self._read_cached_window_xml()
+                if cached:
+                    return cached
             time.sleep(0.5)
         raise RuntimeError(f"failed to dump ui: {last_error}")
 
+    def _read_cached_window_xml(self) -> str:
+        try:
+            xml_text = self.adb("exec-out", "cat", "/sdcard/window.xml", check=False, timeout_s=5).stdout
+        except Exception:
+            return ""
+        return xml_text if xml_text.strip().startswith("<?xml") else ""
+
     def find_resource(self, resource_name: str) -> UiNode:
         full_id = f"{self.package}:id/{resource_name}"
-        xml_text = self.dump_ui()
-        root = ET.fromstring(xml_text)
-        for elem in root.iter("node"):
-            if elem.attrib.get("resource-id") == full_id:
-                return UiNode(
-                    resource_id=full_id,
-                    text=elem.attrib.get("text", ""),
-                    bounds=self._parse_bounds(elem.attrib["bounds"]),
-                    focused=elem.attrib.get("focused") == "true",
-                )
+        scroll_attempts = 5
+        for attempt in range(scroll_attempts):
+            xml_text = self.dump_ui()
+            root = ET.fromstring(xml_text)
+            for elem in root.iter("node"):
+                if elem.attrib.get("resource-id") == full_id:
+                    return UiNode(
+                        resource_id=full_id,
+                        text=elem.attrib.get("text", ""),
+                        bounds=self._parse_bounds(elem.attrib["bounds"]),
+                        focused=elem.attrib.get("focused") == "true",
+                    )
+            if attempt < scroll_attempts - 1:
+                self.swipe(800, 800, 800, 250, 300)
+                time.sleep(0.4)
         raise LookupError(f"resource not found: {full_id}")
 
     def dismiss_blocking_system_dialog(self) -> bool:

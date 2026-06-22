@@ -1,0 +1,29 @@
+task_id: form_randomized
+benchmark_family: form_randomized
+task_type: dummy_form
+policy_hint: scripted
+tags:
+  - benchmark
+app:
+  package: com.primeintellect.dummyrl
+  apk_path: dummy_android_app/build/out/dummy-rl-app.apk
+setup:
+  start_screen: home
+  difficulty: medium
+  randomization:
+    enabled: true
+    button_text_variant: true
+    theme_variant: true
+goal: Search for "grocery order", enter "Grace Hopper" and "grace@example.com", then submit the form.
+max_steps: 12
+success:
+  type: registered_check
+  check: dummy_form_exact
+  threshold: 1.0
+reward:
+  mode: fractional
+parameters:
+  query: grocery order
+  name: Grace Hopper
+  email: grace@example.com
+  seed: 1200

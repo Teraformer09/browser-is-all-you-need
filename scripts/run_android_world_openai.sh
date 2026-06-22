@@ -3,7 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENV_DIR="${ANDROID_WORLD_VENV:-$ROOT_DIR/.venv}"
-ARTIFACT_DIR="${ARTIFACT_DIR:-$ROOT_DIR/artifacts/android_world_openai_run}"
+POLICY="${POLICY:-openai}"
+ARTIFACT_DIR="${ARTIFACT_DIR:-$ROOT_DIR/artifacts/android_world_${POLICY}_run}"
 EPISODES="${EPISODES:-1}"
 MAX_STEPS="${MAX_STEPS:-15}"
 MODEL="${MODEL:-gpt-4o-mini}"
@@ -126,12 +127,14 @@ if [[ -f "$ROOT_DIR/.env" ]]; then
   set +a
 fi
 
-"$VENV_DIR/bin/python" - <<'CHECKKEY'
+if [[ "$POLICY" == "openai" ]]; then
+  "$VENV_DIR/bin/python" - <<'CHECKKEY'
 from android_adk_rl_env.config import get_openai_api_key
 if not get_openai_api_key():
     raise SystemExit('OPENAI_API_KEY missing. Put OPENAI_API_KEY=... in .env')
 print('OPENAI_API_KEY loaded')
 CHECKKEY
+fi
 
 start_emulator_if_needed
 
@@ -145,7 +148,7 @@ REC_PID=$!
 set +e
 "$VENV_DIR/bin/python" -B -m android_adk_rl_env.android_world_runner \
   --backend android_world \
-  --policy openai \
+  --policy "$POLICY" \
   --model "$MODEL" \
   --episodes "$EPISODES" \
   --max-steps "$MAX_STEPS" \
@@ -165,7 +168,7 @@ adb_cmd shell screencap -p "$SCREEN_DEVICE_PATH" >/dev/null 2>&1 || true
 adb_cmd pull "$VIDEO_DEVICE_PATH" "$ARTIFACT_DIR/emulator_run.mp4" >/dev/null 2>&1 || true
 adb_cmd pull "$SCREEN_DEVICE_PATH" "$ARTIFACT_DIR/final_screen.png" >/dev/null 2>&1 || true
 
-"$VENV_DIR/bin/python" - "$ARTIFACT_DIR" "$OUTPUT_JSONL" "$RUN_STATUS" "$ADB_SERIAL" "$CONSOLE_PORT" "$GRPC_PORT" "$MODEL" <<'SUMMARYPY'
+"$VENV_DIR/bin/python" - "$ARTIFACT_DIR" "$OUTPUT_JSONL" "$RUN_STATUS" "$ADB_SERIAL" "$CONSOLE_PORT" "$GRPC_PORT" "$MODEL" "$POLICY" <<'SUMMARYPY'
 import json
 import sys
 from pathlib import Path
@@ -179,6 +182,7 @@ summary = {
     'console_port': int(sys.argv[5]),
     'grpc_port': int(sys.argv[6]),
     'model': sys.argv[7],
+    'policy': sys.argv[8],
 }
 result_path = root / 'result.json'
 if result_path.exists():

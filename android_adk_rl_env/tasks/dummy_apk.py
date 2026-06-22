@@ -113,13 +113,22 @@ class DummyApkFormSearchTask:
         device.press_back()
 
         self._record(trajectory, "click_resource", "submit_button")
-        device.click_resource("submit_button")
+        try:
+            device.click_resource("submit_button")
+        except LookupError:
+            email_node = device.find_resource("email_input")
+            x, _ = email_node.center
+            _, _, _, bottom = email_node.bounds
+            device.tap_coordinates(x, bottom + 60)
 
         prefs = device.read_shared_prefs()
         reward = self.shaped_reward_from_prefs(prefs)
         final_reward = self.reward_from_prefs(prefs)
         reward_components = self.reward_components_from_prefs(prefs)
-        status_node = device.find_resource("status_text")
+        try:
+            status_text = device.find_resource("status_text").text
+        except LookupError:
+            status_text = ""
 
         return {
             "task": self.name_label,
@@ -132,7 +141,7 @@ class DummyApkFormSearchTask:
             "final_reward": final_reward,
             "reward_components": reward_components,
             "reset_metadata": reset_metadata,
-            "status_text": status_node.text,
+            "status_text": status_text,
             "shared_prefs": prefs,
             "trajectory": trajectory,
         }

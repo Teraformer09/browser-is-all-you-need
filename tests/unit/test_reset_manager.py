@@ -46,6 +46,17 @@ class ResetManagerTest(unittest.TestCase):
         self.assertEqual(metadata.applied_mode, "full")
         self.assertTrue(metadata.fallback_used)
 
+    def test_snapshot_mode_skips_console_ops_when_not_supported(self) -> None:
+        os.environ["RESET_MODE"] = "snapshot"
+        task = DummyApkFormSearchTask()
+        device = MockAdbDevice(task)
+        device.supports_emulator_console = lambda: False  # type: ignore[method-assign]
+
+        metadata = reset_task_device(task, device)
+
+        self.assertEqual(metadata.applied_mode, "full")
+        self.assertFalse(metadata.snapshot_created)
+
 
 if __name__ == "__main__":
     unittest.main()

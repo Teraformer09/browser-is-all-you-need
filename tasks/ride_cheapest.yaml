@@ -1,0 +1,23 @@
+task_id: ride_cheapest_001
+benchmark_family: ride_cheapest
+task_type: ride_booking
+policy_hint: scripted
+tags:
+  - benchmark
+app:
+  package: com.primeintellect.dummyrl
+  apk_path: dummy_android_app/build/out/dummy-rl-app.apk
+setup: {}
+goal: Book a Mini ride from Whitefield to Marathahalli.
+max_steps: 15
+success:
+  type: registered_check
+  check: ride_booking_exact
+  threshold: 1.0
+reward:
+  mode: fractional
+parameters:
+  pickup: Whitefield
+  drop: Marathahalli
+  selected_ride: Mini
+  seed: 2000

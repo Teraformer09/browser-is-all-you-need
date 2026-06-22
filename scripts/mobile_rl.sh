@@ -25,7 +25,7 @@ Usage:
   ./scripts/mobile_rl.sh benchmark <proof|quick|release> [--attempts N|--attempts-per-instance N] [--max-steps N] [--pass-k "1 2 5 10"] [--bootstrap-samples N] [--pool-size N] [--collect-screenshot] [--json]
   ./scripts/mobile_rl.sh rollout [--json] [--no-openai] [--artifact-root DIR] [--pool-size N]
   ./scripts/mobile_rl.sh prime-eval [--backend adb|android_world] [--provider openai] [--model MODEL] [--max-turns N] [--start-emulator 0|1] [--stop-emulator-after-run 0|1]
-  ./scripts/mobile_rl.sh android-world [--episodes N] [--max-steps N] [--model MODEL] [--start-emulator 0|1] [--stop-emulator-after-run 0|1] [--artifact-dir DIR]
+  ./scripts/mobile_rl.sh android-world [--policy scripted|openai] [--episodes N] [--max-steps N] [--model MODEL] [--start-emulator 0|1] [--stop-emulator-after-run 0|1] [--artifact-dir DIR]
   ./scripts/mobile_rl.sh pipeline [--preset proof|quick|release] [--skip-benchmark] [--skip-rollout] [--skip-prime] [--skip-android-world]
 
 Examples:
@@ -33,7 +33,7 @@ Examples:
   ./scripts/mobile_rl.sh benchmark proof --collect-screenshot --json
   ./scripts/mobile_rl.sh rollout --json
   ./scripts/mobile_rl.sh prime-eval --backend adb --max-turns 12
-  ./scripts/mobile_rl.sh android-world --episodes 1 --max-steps 15
+  ./scripts/mobile_rl.sh android-world --policy scripted --episodes 1 --max-steps 15
   ./scripts/mobile_rl.sh pipeline --preset proof --skip-android-world
 USAGE
 }
@@ -328,6 +328,7 @@ run_prime_eval() {
 }
 
 run_android_world() {
+  local policy="${ANDROID_WORLD_POLICY:-openai}"
   local episodes="${ANDROID_WORLD_EPISODES:-1}"
   local max_steps="${ANDROID_WORLD_MAX_STEPS:-15}"
   local model="${ANDROID_WORLD_MODEL:-gpt-4o-mini}"
@@ -337,6 +338,10 @@ run_android_world() {
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
+      --policy)
+        policy="$2"
+        shift 2
+        ;;
       --episodes)
         episodes="$2"
         shift 2
@@ -369,6 +374,16 @@ run_android_world() {
     esac
   done
 
+  if [[ "$policy" != "scripted" && "$policy" != "openai" ]]; then
+    echo "Unsupported AndroidWorld policy: $policy" >&2
+    exit 1
+  fi
+
+  if [[ "$policy" == "scripted" && -z "${ARTIFACT_DIR:-}" ]]; then
+    artifact_dir="$ROOT_DIR/artifacts/android_world_scripted_run"
+  fi
+
+  POLICY="$policy" \
   EPISODES="$episodes" \
   MAX_STEPS="$max_steps" \
   MODEL="$model" \

@@ -13,6 +13,9 @@ The requested work covered:
 - portability decisions for KVM-backed scaling
 - verification that the Prime bridge is verifiers-native
 - explicit AndroidWorld dependency pinning
+- spec-driven CLI eval and task-spec execution
+- strict statistical `pass@k` support at `k={1,2,3,5,10}`
+- benchmarking-grade reward reporting and calibration helpers
 
 ## Status Summary
 
@@ -24,6 +27,10 @@ Implemented:
 - standardized `mobile_observation.v1` schema
 - KVM-aware preflight and emulator-start validation
 - explicit AndroidWorld commit pinning
+- unified `mobile-rl` CLI with `health`, `eval`, and `benchmark`
+- YAML task specs plus registered success checks
+- strict `pass@k` helper module that fails when `k > n`
+- reward distribution, best-of-k, and calibration reporting modules
 - runtime hardening for real ADB execution:
   - configurable ADB command timeout
   - better `uiautomator dump` retries
@@ -40,6 +47,8 @@ Verified:
 - real demo-APK proof benchmark run
 - real demo-APK rollout run
 - real scripted form-task execution on-device
+- real `mobile-rl health` run on `2026-06-22`
+- real `mobile-rl eval --task tasks/form_default.yaml --policy scripted` run on `2026-06-22`
 
 Still open:
 
@@ -63,6 +72,12 @@ Still open:
    confirmed in `prime_android_adk_rl_env/prime_android_adk_rl_env.py`
 7. AndroidWorld pin
    `scripts/install_android_world.sh`, `configs/mobile/orchestrator.env`
+8. CLI / task specs
+   `android_adk_rl_env/cli.py`, `android_adk_rl_env/eval_runner.py`, `android_adk_rl_env/task_specs.py`, `tasks/*.yaml`, `android_adk_rl_env/tasks/checks/*.py`
+9. Strict pass@k
+   `android_adk_rl_env/benchmarking/pass_at_k.py`, `android_adk_rl_env/proof_benchmark.py`, `tests/unit/test_pass_at_k.py`
+10. Reward reporting / calibration
+   `android_adk_rl_env/benchmarking/reward_stats.py`, `tests/unit/test_reward_calibration.py`, `docs/CLI_BENCHMARK_REWARD_UPGRADE.md`
 
 ## Chosen Portability Path
 
@@ -97,3 +112,4 @@ Main runtime blockers fixed during validation:
 - [REWARDS.md](/data/Balram/prime-intellect-android-adk-rl-environments/docs/REWARDS.md)
 - [OBSERVATION_ACTION_SCHEMA.md](/data/Balram/prime-intellect-android-adk-rl-environments/docs/OBSERVATION_ACTION_SCHEMA.md)
 - [MOBILE_RL_IMPLEMENTATION_REPORT.md](/data/Balram/prime-intellect-android-adk-rl-environments/docs/MOBILE_RL_IMPLEMENTATION_REPORT.md)
+- [CLI_BENCHMARK_REWARD_UPGRADE.md](/data/Balram/prime-intellect-android-adk-rl-environments/docs/CLI_BENCHMARK_REWARD_UPGRADE.md)

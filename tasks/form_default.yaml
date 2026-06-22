@@ -1,0 +1,25 @@
+task_id: form_default
+benchmark_family: form_default
+task_type: dummy_form
+policy_hint: scripted
+tags:
+  - benchmark
+app:
+  package: com.primeintellect.dummyrl
+  apk_path: dummy_android_app/build/out/dummy-rl-app.apk
+setup:
+  start_screen: home
+  difficulty: easy
+goal: Search for "airport ride", enter "Ada Lovelace" and "ada@example.com", then submit the form.
+max_steps: 12
+success:
+  type: registered_check
+  check: dummy_form_exact
+  threshold: 1.0
+reward:
+  mode: fractional
+parameters:
+  query: airport ride
+  name: Ada Lovelace
+  email: ada@example.com
+  seed: 1000

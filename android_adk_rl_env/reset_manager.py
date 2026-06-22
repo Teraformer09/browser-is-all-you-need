@@ -33,25 +33,35 @@ def reset_task_device(task: Any, device: Any) -> ResetMetadata:
 
     try:
         if reset_mode == "snapshot" and _supports_snapshots(device):
-            created = _ensure_snapshot(device, task, snapshot_name)
-            if created:
-                snapshot_created = True
-                applied_mode = "full"
-            else:
-                try:
-                    device.restore_snapshot(snapshot_name)
-                    _launch_for_task(device, task)
-                    applied_mode = "snapshot"
-                except Exception as exc:  # noqa: BLE001
-                    fallback_used = True
-                    error = f"{type(exc).__name__}: {exc}"
-                    _full_reset(device, task)
+            try:
+                created = _ensure_snapshot(device, task, snapshot_name)
+                if created:
+                    snapshot_created = True
                     applied_mode = "full"
+                else:
+                    try:
+                        device.restore_snapshot(snapshot_name)
+                        _launch_for_task(device, task)
+                        applied_mode = "snapshot"
+                    except Exception as exc:  # noqa: BLE001
+                        fallback_used = True
+                        error = f"{type(exc).__name__}: {exc}"
+                        _full_reset(device, task)
+                        applied_mode = "full"
+            except Exception as exc:  # noqa: BLE001
+                fallback_used = True
+                error = f"{type(exc).__name__}: {exc}"
+                _full_reset(device, task)
+                applied_mode = "full"
         else:
             _full_reset(device, task)
             applied_mode = "full"
             if reset_mode == "snapshot" and _supports_snapshots(device):
-                snapshot_created = _maybe_create_snapshot(device, snapshot_name)
+                try:
+                    snapshot_created = _maybe_create_snapshot(device, snapshot_name)
+                except Exception as exc:  # noqa: BLE001
+                    fallback_used = True
+                    error = f"{type(exc).__name__}: {exc}"
     except Exception:
         duration = max(0.0, time.perf_counter() - started)
         raise
@@ -69,7 +79,15 @@ def reset_task_device(task: Any, device: Any) -> ResetMetadata:
 
 
 def _supports_snapshots(device: Any) -> bool:
-    return all(hasattr(device, name) for name in ("snapshot_exists", "save_snapshot", "restore_snapshot"))
+    has_ops = all(hasattr(device, name) for name in ("snapshot_exists", "save_snapshot", "restore_snapshot"))
+    if not has_ops:
+        return False
+    if hasattr(device, "supports_emulator_console"):
+        try:
+            return bool(device.supports_emulator_console())
+        except Exception:
+            return False
+    return True
 
 
 def _ensure_snapshot(device: Any, task: Any, snapshot_name: str) -> bool:
