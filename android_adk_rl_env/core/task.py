@@ -18,6 +18,16 @@ DEFAULT_FORM_REWARD_WEIGHTS: dict[str, float] = {
     "finish_after_success": 0.05,
 }
 
+DEFAULT_RIDE_REWARD_WEIGHTS: dict[str, float] = {
+    "episode_id": 0.02,
+    "ride_pickup": 0.08,
+    "ride_drop": 0.08,
+    "selected_ride": 0.10,
+    "screen": 0.20,
+    "ride_confirmed": 0.52,
+    "ride_cancelled": 0.52,
+}
+
 DEFAULT_FORM_RANDOMIZATION: dict[str, Any] = {
     "enabled": False,
     "button_text_variant": False,

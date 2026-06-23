@@ -67,7 +67,7 @@ Observed on 2026-06-22:
 - emulator ports and serials
 - `RESET_MODE`
 - `ADB_CMD_TIMEOUT_S`
-- `ANDROID_WORLD_REF`
+- vendored `third_party/android_world` copy at commit `d9c569f764b3a5629321858de03ff653d0f24056`
 - `POLICY`
 - model/provider/api settings when model-based runs are used
 - explicit emulator gRPC port for AndroidWorld runs

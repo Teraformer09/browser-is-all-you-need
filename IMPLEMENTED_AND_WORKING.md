@@ -29,6 +29,8 @@ It is intentionally strict:
 - Release-style benchmark run with `samples-per-task=10`
 - Live AndroidWorld scripted execution on a gRPC-enabled emulator
 - Throughput benchmark measurement for pool sizes `1` and `2`
+- Live Prime `vf-eval` harness execution on the real environment
+- Live broken-policy benchmark proving non-trivial pass@k discrimination
 
 ## Accurate Scope
 
@@ -38,12 +40,14 @@ What is true now:
 - The current demo task set passes through the spec-driven CLI on a single real emulator.
 - The current proof benchmark path has been validated on two concurrent emulator serials.
 - AndroidWorld is installed and the scripted AndroidWorld path is validated on a live emulator.
+- Prime live eval is validated as a runnable harness path.
+- The live benchmark path now has both an all-success oracle batch and a live all-failure bounded-policy batch.
 - The repo is Prime-compatible in structure and entrypoints.
 - The live form and ride flows are working on-device after the ADB/runtime hardening changes.
 
 What is not claimed here:
 
-- That Prime eval has already been revalidated end to end after the latest runtime fixes
+- That Prime eval is already successful on the live model-backed path
 - That AndroidWorld OpenAI execution was revalidated end to end in this session
 - That multi-device pooling was hardware-validated beyond `POOL_SIZE=2`
 
@@ -63,6 +67,8 @@ RESET_MODE=full ADB_SERIALS='127.0.0.1:15555 emulator-5556' python3 -m android_a
 RESET_MODE=full ADB_SERIALS='127.0.0.1:15555 emulator-5556' python3 -m android_adk_rl_env.proof_benchmark --tasks-dir tasks --attempts-per-instance 10 --pass-k 1 2 3 5 10 --pool-size 2 --output artifacts/benchmarks/publication-live-pool2 --compact
 python3 -m android_adk_rl_env.benchmarking.throughput --pool-sizes 1 2 --attempts-per-instance 1 --pass-k 1 --output artifacts/throughput/publication --compact
 ./.venv/bin/python -B -m android_adk_rl_env.android_world_runner --backend android_world --policy scripted --episodes 1 --max-steps 10 --output artifacts/android_world/scripted_smoke.jsonl --adb-path adb --adb-serial emulator-5556 --console-port 5556 --grpc-port 8555 --compact
+env ADB_SERIAL=127.0.0.1:15555 START_EMULATOR=0 STOP_EMULATOR_AFTER_RUN=0 RESULTS_DIR=artifacts/prime_eval_android_adk/live_20260622 ./scripts/run_prime_eval_android_adk.sh
+env RESET_MODE=full ADB_SERIAL=127.0.0.1:15555 python3 -m android_adk_rl_env.proof_benchmark --tasks-dir artifacts/tmp_form_tasks --policy broken --attempts-per-instance 3 --pass-k 1 2 3 --pool-size 1 --output artifacts/benchmarks/broken-live-form --compact
 ```
 
 ## Real Emulator Validation
@@ -122,6 +128,47 @@ success_rate=1.0
 artifact=artifacts/android_world/scripted_smoke.jsonl
 ```
 
+Prime live eval result:
+
+```text
+backend=adb
+model=gpt-4o-mini
+harness_completed=true
+reward=0.0
+turns=6
+artifact=artifacts/prime_eval_android_adk/live_20260622/prime_eval.log
+```
+
+Broken-policy live benchmark result:
+
+```text
+policy=broken
+tasks=2
+samples_per_task=3
+total_attempts=6
+exact_success_rate=0.0
+pass@1=0.0
+pass@2=0.0
+pass@3=0.0
+avg_reward=0.15
+artifact=artifacts/benchmarks/broken-live-form/20260622_095050
+```
+
+Broken-policy live ride benchmark result:
+
+```text
+policy=broken
+tasks=2
+samples_per_task=3
+total_attempts=6
+exact_success_rate=0.0
+pass@1=0.0
+pass@2=0.0
+pass@3=0.0
+avg_reward=0.18
+artifact=artifacts/benchmarks/broken-live-ride/20260622_115043
+```
+
 ## Test Status
 
 ```text
@@ -134,7 +181,7 @@ tests/prime: passed
 ## Implemented But Not Fully Revalidated In This Session
 
 - OpenAI rollout collection through `android_adk_rl_env.train`
-- Prime eval through `./scripts/run_prime_eval_android_adk.sh`
+- Prime eval success improvements beyond the currently validated runnable harness path
 - AndroidWorld OpenAI run
 - multi-device live rollout / benchmark with `POOL_SIZE > 2`
 

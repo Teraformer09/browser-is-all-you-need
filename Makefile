@@ -1,4 +1,4 @@
-.PHONY: test unit integration android-world prime docker-build docker-test docker-run docker-real-adb-smoke build-apk install-apk adb-run androidworld-openai androidworld-scripted prime-eval prime-eval-form prime-eval-ride run clean benchmark-proof benchmark-quick benchmark-release throughput-benchmark \
+.PHONY: test unit integration android-world prime docker-build docker-test docker-run docker-full-build docker-full-tests docker-full-shell docker-full-build-apk docker-full-rollout docker-full-android-world docker-full-prime-eval docker-full-health docker-full-preflight docker-full-benchmark docker-real-adb-smoke build-apk install-apk adb-run androidworld-openai androidworld-scripted prime-eval prime-eval-form prime-eval-ride run clean benchmark-proof benchmark-quick benchmark-release throughput-benchmark \
 	mobile-help mobile-preflight mobile-health mobile-benchmark-proof mobile-benchmark-quick mobile-benchmark-release mobile-throughput mobile-rollout mobile-prime-eval mobile-android-world mobile-android-world-scripted mobile-pipeline
 
 # Standard project checks
@@ -99,6 +99,36 @@ docker-test:
 
 docker-run:
 	docker compose -f docker-compose.yml run --rm mobile-rl-runner make run
+
+docker-full-build:
+	COMPOSE_FILE=compose.yaml SERVICE=android-adk ./scripts/docker_run.sh build
+
+docker-full-tests:
+	COMPOSE_FILE=compose.yaml SERVICE=android-adk ./scripts/docker_run.sh tests
+
+docker-full-shell:
+	COMPOSE_FILE=compose.yaml SERVICE=android-adk ./scripts/docker_run.sh shell
+
+docker-full-build-apk:
+	COMPOSE_FILE=compose.yaml SERVICE=android-adk ./scripts/docker_run.sh build-apk
+
+docker-full-rollout:
+	COMPOSE_FILE=compose.yaml SERVICE=android-adk ./scripts/docker_run.sh rollout
+
+docker-full-android-world:
+	COMPOSE_FILE=compose.yaml SERVICE=android-adk ./scripts/docker_run.sh android-world-openai
+
+docker-full-prime-eval:
+	COMPOSE_FILE=compose.yaml SERVICE=android-adk ./scripts/docker_run.sh prime-eval
+
+docker-full-health:
+	COMPOSE_FILE=compose.yaml SERVICE=android-adk ./scripts/docker_run.sh health
+
+docker-full-preflight:
+	COMPOSE_FILE=compose.yaml SERVICE=android-adk ./scripts/docker_run.sh preflight
+
+docker-full-benchmark:
+	COMPOSE_FILE=compose.yaml SERVICE=android-adk ./scripts/docker_run.sh benchmark proof --json
 
 docker-real-adb-smoke:
 	bash ./scripts/docker_real_adb_openai_rollout.sh

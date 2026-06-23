@@ -4,6 +4,10 @@ Last updated: 2026-06-22
 
 This document turns the publication-readiness review into a concrete release checklist.
 
+For the tightly scoped next-round priorities, see:
+
+- `docs/NEXT_HANDOFF_PRIORITY_SCOPE.md`
+
 ## What Is Already Closed
 
 - `POOL_SIZE=2` validation with overlapping timestamps and two distinct serials
@@ -17,8 +21,8 @@ This document turns the publication-readiness review into a concrete release che
 
 ### External-run blockers
 
-- one live Prime `vf-eval` run with saved output
-- any OpenAI-backed run that requires `OPENAI_API_KEY`
+- improved Prime live-eval task success beyond the currently validated runnable harness path
+- AndroidWorld OpenAI-path validation
 
 ### Scope blockers
 
@@ -29,8 +33,8 @@ This document turns the publication-readiness review into a concrete release che
 
 ## Release Sequence
 
-1. Run live Prime eval once `OPENAI_API_KEY` is available.
-2. Add at least one benchmark results table covering random, scripted, and zero-shot model baselines.
+1. Resolve the `127.0.0.1:15555` snapshot-topology question explicitly.
+2. Improve or precisely diagnose the current Prime live-eval failure mode.
 3. Implement the first cross-app task family and its verifier spec.
 4. Run one real training loop and save the learning curve artifacts.
 5. Fill the competitive positioning table with measured numbers only.

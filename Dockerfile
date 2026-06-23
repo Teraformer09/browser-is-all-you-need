@@ -1,8 +1,6 @@
 FROM ubuntu:24.04
 
 ARG ANDROID_CMDLINE_TOOLS_VERSION=11076708
-ARG ANDROID_WORLD_REPO=https://github.com/google-research/android_world.git
-ARG ANDROID_WORLD_REF=main
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
@@ -10,7 +8,7 @@ ENV ANDROID_SDK_ROOT=/opt/android-sdk
 ENV ANDROID_HOME=/opt/android-sdk
 ENV ANDROID_BUILD_TOOLS=/opt/android-sdk/build-tools/34.0.0
 ENV ANDROID_WORLD_VENV=/opt/android-adk-venv
-ENV ANDROID_WORLD_SRC=/opt/android_world
+ENV ANDROID_WORLD_SRC=/workspace/third_party/android_world
 ENV ANDROID_AVD_HOME=/workspace/.deps/android_avd
 ENV ANDROID_WORLD_AVD_NAME=AndroidWorld_API_33
 ENV ANDROID_WORLD_SYSTEM_IMAGE=system-images;android-33;google_apis;x86_64
@@ -77,18 +75,12 @@ RUN python3 -m venv "$ANDROID_WORLD_VENV" && \
     python -m pip install --upgrade pip wheel "setuptools<81" && \
     python -m pip install prime
 
-RUN git clone --depth 1 "$ANDROID_WORLD_REPO" "$ANDROID_WORLD_SRC" && \
-    if [[ "$ANDROID_WORLD_REF" != "main" ]]; then \
-      git -C "$ANDROID_WORLD_SRC" fetch --depth 1 origin "$ANDROID_WORLD_REF" && \
-      git -C "$ANDROID_WORLD_SRC" checkout FETCH_HEAD; \
-    fi && \
-    python -m pip install -r "$ANDROID_WORLD_SRC/requirements.txt" && \
-    python -m pip install --no-build-isolation -e "$ANDROID_WORLD_SRC"
-
 WORKDIR /workspace
 COPY . /workspace
 
-RUN python -m pip install -e /workspace && \
+RUN python -m pip install -r "$ANDROID_WORLD_SRC/requirements.txt" && \
+    python -m pip install --no-build-isolation -e "$ANDROID_WORLD_SRC" && \
+    python -m pip install -e /workspace && \
     /workspace/scripts/build_dummy_apk.sh
 
 COPY docker/entrypoint.sh /usr/local/bin/android-adk-docker

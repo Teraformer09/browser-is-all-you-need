@@ -24,16 +24,26 @@ Taskset JSONL
 
 ```text
 android_adk_rl_env/
+  cli.py
+  eval_runner.py
+  proof_benchmark.py
+  rollout_runner.py
+  apk_env.py
+  android_world_bridge.py
+  reset_manager.py
+  task_specs.py
+  device_pool.py
   core/
   devices/
   envs/
   policies/
   tasks/
   training/
+  benchmarking/
 
 prime_android_adk_rl_env/
-environments/mobile_android_rl/
 dummy_android_app/
+tasks/
 scripts/
 tests/
 ```
@@ -259,6 +269,8 @@ connected device
 ```
 
 ## Docker Architecture
+
+See [Docker Guide](/data/Balram/prime-intellect-android-adk-rl-environments/docs/DOCKER_GUIDE.md) for the canonical container workflows.
 
 Host-ADB runner:
 

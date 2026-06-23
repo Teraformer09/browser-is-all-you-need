@@ -13,12 +13,13 @@ JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-21-openjdk-amd64}"
 ANDROID_AVD_HOME="${ANDROID_AVD_HOME:-$ROOT_DIR/.deps/android_avd}"
 AVD_NAME="${ANDROID_WORLD_AVD_NAME:-AndroidWorld_API_33}"
 ADB_PATH="${ADB_PATH:-$SDK_ROOT/platform-tools/adb}"
-CONSOLE_PORT="${CONSOLE_PORT:-5556}"
-ADB_PORT="${ADB_PORT:-$((CONSOLE_PORT + 1))}"
+CONSOLE_PORT="${CONSOLE_PORT:-}"
 GRPC_PORT="${GRPC_PORT:-8554}"
-ADB_SERIAL="${ADB_SERIAL:-emulator-$CONSOLE_PORT}"
+ADB_SERIAL="${ADB_SERIAL:-}"
 START_EMULATOR="${START_EMULATOR:-1}"
 STOP_EMULATOR_AFTER_RUN="${STOP_EMULATOR_AFTER_RUN:-0}"
+DEFAULT_ADB_SERIAL="${ANDROID_WORLD_DEFAULT_ADB_SERIAL:-127.0.0.1:15555}"
+DEFAULT_CONSOLE_PORT="${ANDROID_WORLD_DEFAULT_CONSOLE_PORT:-15554}"
 OUTPUT_JSONL="$ARTIFACT_DIR/rollout.jsonl"
 VIDEO_DEVICE_PATH="/sdcard/android_world_openai_run.mp4"
 SCREEN_DEVICE_PATH="/sdcard/android_world_openai_final.png"
@@ -126,6 +127,47 @@ if [[ -f "$ROOT_DIR/.env" ]]; then
   source "$ROOT_DIR/.env"
   set +a
 fi
+
+resolve_live_adb_serial() {
+  if [[ -n "$ADB_SERIAL" ]]; then
+    return
+  fi
+  local serial
+  serial="$($ADB_PATH devices 2>/dev/null | awk -v preferred="$DEFAULT_ADB_SERIAL" '
+    $2=="device" && $1==preferred { print $1; exit }
+    $2=="device" && $1 !~ /^List/ && !seen { seen=$1 }
+    END { if (seen) print seen }
+  ')"
+  if [[ -n "$serial" ]]; then
+    ADB_SERIAL="$serial"
+    return
+  fi
+  if [[ "$START_EMULATOR" == "1" ]]; then
+    ADB_SERIAL="$DEFAULT_ADB_SERIAL"
+    return
+  fi
+  echo "No live adb device found and ADB_SERIAL was not provided." >&2
+  exit 1
+}
+
+resolve_console_port() {
+  if [[ -n "$CONSOLE_PORT" ]]; then
+    return
+  fi
+  if [[ "$ADB_SERIAL" =~ ^emulator-([0-9]+)$ ]]; then
+    CONSOLE_PORT="${BASH_REMATCH[1]}"
+    return
+  fi
+  if [[ "$ADB_SERIAL" =~ :([0-9]+)$ ]]; then
+    CONSOLE_PORT="$((BASH_REMATCH[1] - 1))"
+    return
+  fi
+  CONSOLE_PORT="$DEFAULT_CONSOLE_PORT"
+}
+
+resolve_live_adb_serial
+resolve_console_port
+ADB_PORT="$((CONSOLE_PORT + 1))"
 
 if [[ "$POLICY" == "openai" ]]; then
   "$VENV_DIR/bin/python" - <<'CHECKKEY'

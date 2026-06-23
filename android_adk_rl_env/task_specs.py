@@ -128,6 +128,7 @@ def build_known_task(spec: EvalTaskSpec, *, attempt: int = 0) -> DummyApkFormSea
             package=spec.app.package,
             max_steps=spec.max_steps,
             seed=seed,
+            reward_weights=dict(spec.setup.get("reward_weights") or {}),
         )
     return None
 

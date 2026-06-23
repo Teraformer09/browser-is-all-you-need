@@ -90,8 +90,21 @@ class RideRewardGranularityTest(unittest.TestCase):
         shaped = task.shaped_reward_from_prefs(prefs)
         exact = task.reward_from_prefs(prefs)
         self.assertGreater(shaped, 0.0)
-        self.assertLess(shaped, 1.0)
+        self.assertLess(shaped, 0.3)
         self.assertEqual(exact, 0.0)
+
+    def test_ride_task_weights_wrong_selected_ride_as_low_partial_credit(self) -> None:
+        task = RideBookingTask(episode_id="ride_ep")
+        prefs = """<map>
+<string name="episode_id">ride_ep</string>
+<string name="ride_pickup">Sector 62</string>
+<string name="ride_drop">Noida City Centre</string>
+<string name="selected_ride">Premium</string>
+<boolean name="ride_confirmed" value="false" />
+<string name="screen">ride_options</string>
+</map>"""
+        shaped = task.shaped_reward_from_prefs(prefs)
+        self.assertAlmostEqual(shaped, 0.18, places=6)
 
 
 if __name__ == "__main__":

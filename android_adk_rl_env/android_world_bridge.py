@@ -42,9 +42,9 @@ def require_android_world() -> None:
     status = android_world_status()
     if not status.installed:
         raise AndroidWorldNotInstalledError(
-            "AndroidWorld is not installed. Install google-research/android_world "
-            "and launch its emulator with the required -grpc port before using "
-            "--backend android_world. Import error: " + (status.reason or "unknown")
+            "AndroidWorld is not installed. This repo vendors AndroidWorld under "
+            "third_party/android_world; rebuild the image or run scripts/install_android_world.sh "
+            "before using --backend android_world. Import error: " + (status.reason or "unknown")
         )
 
 

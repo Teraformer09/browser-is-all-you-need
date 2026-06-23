@@ -63,8 +63,8 @@ def run_task_spec(
         }
         policy_metadata: dict[str, Any] = {}
     else:
-        if spec.task_type != "dummy_form":
-            raise RuntimeError(f"policy {policy} is only supported for dummy_form in the current live path")
+        if spec.task_type not in {"dummy_form", "ride_booking"}:
+            raise RuntimeError(f"policy {policy} is not supported for task type {spec.task_type} in the current live path")
 
         def env_factory() -> DummyApkEnv:
             return DummyApkEnv(

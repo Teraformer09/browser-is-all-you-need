@@ -322,6 +322,37 @@ Meaning:
 - Prime integration is runnable with a real model-backed live eval
 - the current model behavior is not yet reliable enough to claim task success on the validated live run
 
+## Live calibration contrast
+
+Validated on 2026-06-22:
+
+- oracle/scripted benchmark:
+  - `artifacts/benchmarks/publication-live-pool2/20260622_052711`
+  - exact success rate `1.0`
+  - pass@1 through pass@10 `1.0`
+- bounded bad-policy benchmark:
+  - `artifacts/benchmarks/broken-live-form/20260622_095050`
+  - exact success rate `0.0`
+  - pass@1 `0.0`
+  - pass@2 `0.0`
+  - pass@3 `0.0`
+  - shaped reward mean `0.15`
+  - form-task scope only
+- bounded bad-policy benchmark for ride tasks:
+  - `artifacts/benchmarks/broken-live-ride/20260622_115043`
+  - exact success rate `0.0`
+  - pass@1 `0.0`
+  - pass@2 `0.0`
+  - pass@3 `0.0`
+  - shaped reward mean `0.18`
+
+Meaning:
+
+- the live benchmark path now has a real all-success oracle batch
+- it also has real all-failure bounded-policy batches for both form and ride families
+- this proves the live pass@k wiring discriminates in practice, not only in unit tests
+- ride shaped reward was tightened so broken policies no longer receive half-credit for trivial partial progress
+
 ## 6. How To Run Everything
 
 ### Base environment
@@ -430,6 +461,7 @@ python3 -m unittest discover -s tests/prime
 - throughput measurement
 - AndroidWorld scripted path
 - Prime live eval as a runnable harness path
+- live pass@k discrimination between oracle and bad-policy runs
 
 ## 8. What Still Needs More Work
 

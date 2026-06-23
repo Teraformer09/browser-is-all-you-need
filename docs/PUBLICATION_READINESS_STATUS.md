@@ -31,6 +31,18 @@ Root cause:
 - this path is an emulator, but not a console-style `emulator-####` serial
 - `adb emu avd snapshot ...` therefore is not a reliable control path for that serial
 
+Observed split:
+
+- on `emulator-5556`, raw snapshot commands succeeded:
+  - `adb -s emulator-5556 emu avd snapshot list`
+  - `adb -s emulator-5556 emu avd snapshot save codex_diag_snapshot`
+  - `adb -s emulator-5556 emu avd snapshot load codex_diag_snapshot`
+- on `127.0.0.1:15555`, raw snapshot commands failed:
+  - `adb -s 127.0.0.1:15555 emu avd snapshot list`
+  - `adb -s 127.0.0.1:15555 emu avd snapshot save codex_tcp_snapshot`
+  - `adb -s 127.0.0.1:15555 emu avd snapshot load codex_tcp_snapshot`
+  - observed shell exit code: `1`
+
 Fix applied:
 
 - snapshot support now checks for emulator-console capability
@@ -235,6 +247,7 @@ Implemented in code:
 Still needed:
 
 - real benchmark table with random / oracle / zero-shot model numbers
+- broader live comparison beyond the currently measured oracle and broken-policy paths
 
 ### C2 Comparative system table
 
@@ -250,11 +263,66 @@ Still needed:
 
 ### C3 Cross-app calibration
 
-Status: `not started`
+Status: `partially implemented`
 
-Reason:
+Implemented:
 
-- cross-app tasks do not exist yet
+- live oracle benchmark path:
+  - `artifacts/benchmarks/publication-live-pool2/20260622_052711`
+- live broken-policy benchmark path:
+  - `artifacts/benchmarks/broken-live-form/20260622_095050`
+  - `artifacts/benchmarks/broken-live-ride/20260622_115043`
+
+Observed live broken-policy result for form tasks:
+
+- policy:
+  - `broken`
+- task scope:
+  - `form_default`
+  - `form_randomized`
+- total attempts:
+  - `6`
+- exact success rate:
+  - `0.0`
+- pass@1:
+  - `0.0`
+- pass@2:
+  - `0.0`
+- pass@3:
+  - `0.0`
+- shaped reward mean:
+  - `0.15`
+
+Observed live broken-policy result for ride tasks:
+
+- policy:
+  - `broken`
+- task scope:
+  - `ride_cheapest_001`
+  - `ride_cancel_001`
+- total attempts:
+  - `6`
+- exact success rate:
+  - `0.0`
+- pass@1:
+  - `0.0`
+- pass@2:
+  - `0.0`
+- pass@3:
+  - `0.0`
+- shaped reward mean:
+  - `0.18`
+
+Reward-design note:
+
+- an earlier live ride calibration run produced shaped reward mean `0.5` for the broken policy
+- ride shaped reward was then tightened to reduce credit for trivial progress
+- the corrected live rerun dropped broken-policy ride reward to `0.18`
+
+Still needed:
+
+- cross-app calibration once cross-app tasks exist
+- a live random or zero-shot model comparison table across the broader benchmark family
 
 ## Pillar D Trainability
 
@@ -290,7 +358,7 @@ Status: `partially implemented`
 
 Implemented:
 
-- pinned `ANDROID_WORLD_REF`
+- vendored `third_party/android_world` copy at commit `d9c569f764b3a5629321858de03ff653d0f24056`
 - task specs and benchmark config artifacts
 - reset-mode and device-serial reporting
 

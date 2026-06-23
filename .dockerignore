@@ -17,6 +17,7 @@ __pycache__/
 .idea/
 .vscode/
 .DS_Store
+third_party/android_world/.git/
 
 # Local dependency/runtime state
 .deps/

@@ -29,7 +29,7 @@ Branch: `feature/mobile-rl-improvement-plan`
 - `ADB_SERIALS`
 - `ADB_BASELINE_SNAPSHOT`
 - `MOBILE_REQUIRE_KVM`
-- `ANDROID_WORLD_REF`
+- vendored `third_party/android_world` copy at commit `d9c569f764b3a5629321858de03ff653d0f24056`
 - `ADB_CMD_TIMEOUT_S`
 
 ## Verification Coverage Added

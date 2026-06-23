@@ -28,6 +28,7 @@ Live-validated on `2026-06-22`:
 Current real-run results:
 
 - eval: structured JSON result with `harness_success=true` and `task_success=true`
+- OpenAI eval on `2026-06-23`: harness succeeded end to end, but the task did not reach success (`task_success=false`)
 
 The runtime loop is:
 
@@ -50,6 +51,7 @@ android_adk_rl_env/
   adb_device.py              Real device control and runtime hardening
   apk_env.py                 Step-based APK RL environment
   android_world_bridge.py    AndroidWorld-backed environment bridge
+  third_party/android_world/  Vendored AndroidWorld source tree
   rollout_runner.py          Multi-task rollout and artifact generation
   proof_benchmark.py         Repeatability / pass@k benchmark runner
   cli.py                     Unified mobile-rl CLI
@@ -130,6 +132,9 @@ The ride-booking specs are implemented, but the live ride path was not revalidat
 
 ## Main Docs
 
+- [System Overview and Operations Guide](/data/Balram/prime-intellect-android-adk-rl-environments/docs/SYSTEM_OVERVIEW_AND_OPERATIONS.md)
+
+- [Docker Guide](/data/Balram/prime-intellect-android-adk-rl-environments/docs/DOCKER_GUIDE.md)
 - [Improvement Plan](/data/Balram/prime-intellect-android-adk-rl-environments/docs/MOBILE_RL_IMPROVEMENT_PLAN.md)
 - [Implementation Report](/data/Balram/prime-intellect-android-adk-rl-environments/docs/MOBILE_RL_IMPLEMENTATION_REPORT.md)
 - [CLI / Benchmark / Reward Upgrade](/data/Balram/prime-intellect-android-adk-rl-environments/docs/CLI_BENCHMARK_REWARD_UPGRADE.md)

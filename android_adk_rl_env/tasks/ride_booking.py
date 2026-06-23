@@ -7,6 +7,7 @@ from dataclasses import dataclass, field, replace
 from typing import Any
 
 from android_adk_rl_env.adb_device import AdbDevice
+from android_adk_rl_env.core.task import DEFAULT_RIDE_REWARD_WEIGHTS
 from android_adk_rl_env.reset_manager import reset_task_device
 from android_adk_rl_env.tasks.dummy_apk import new_episode_id
 
@@ -27,6 +28,7 @@ class RideBookingTask:
     surface: str = "android_apk"
     difficulty: str = "medium"
     seed: int = 2001
+    reward_weights: dict[str, float] = field(default_factory=lambda: dict(DEFAULT_RIDE_REWARD_WEIGHTS))
 
     @property
     def resource_names(self) -> tuple[str, ...]:
@@ -200,7 +202,12 @@ class RideBookingTask:
         )
         if not components:
             return 0.0
-        return sum(1 for passed in components.values() if passed) / len(components)
+        weights = {**DEFAULT_RIDE_REWARD_WEIGHTS, **self.reward_weights}
+        total_weight = sum(float(weights.get(key, 0.0)) for key in components)
+        if total_weight <= 0:
+            return 0.0
+        score = sum(float(weights.get(key, 0.0)) for key, passed in components.items() if passed)
+        return score / total_weight
 
     def reward_from_prefs(
         self,

@@ -479,6 +479,8 @@ android_adk_rl_env/envs/mobile_task_env.py
 
 ## 15. Docker Runner
 
+For the up-to-date container walkthrough, see [Docker Guide](/data/Balram/prime-intellect-android-adk-rl-environments/docs/DOCKER_GUIDE.md).
+
 There are two Docker paths.
 
 Host-ADB runner:
@@ -516,7 +518,7 @@ The full emulator path needs KVM/nested virtualization.
 
 ## 16. AndroidWorld Path
 
-Install AndroidWorld and Android SDK/AVD:
+Use the vendored AndroidWorld copy in `third_party/android_world` and install Android SDK/AVD:
 
 ```bash
 ./scripts/install_android_world.sh
