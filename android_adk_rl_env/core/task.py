@@ -19,13 +19,19 @@ DEFAULT_FORM_REWARD_WEIGHTS: dict[str, float] = {
 }
 
 DEFAULT_RIDE_REWARD_WEIGHTS: dict[str, float] = {
-    "episode_id": 0.02,
-    "ride_pickup": 0.08,
-    "ride_drop": 0.08,
-    "selected_ride": 0.10,
-    "screen": 0.20,
-    "ride_confirmed": 0.52,
-    "ride_cancelled": 0.52,
+    "episode_match": 0.03,
+    "pickup_match": 0.05,
+    "ride_type_match": 0.10,
+    "destination_match": 0.16,
+    "cab_type_match": 0.12,
+    "payment_match": 0.10,
+    "journey_stage_match": 0.14,
+    "screen_match": 0.10,
+    "ride_terminal_state": 0.15,
+    "sequence_clean": 0.04,
+    "no_forbidden_action": 0.03,
+    "no_invalid_action": 0.03,
+    "finish_after_success": 0.05,
 }
 
 DEFAULT_FORM_RANDOMIZATION: dict[str, Any] = {

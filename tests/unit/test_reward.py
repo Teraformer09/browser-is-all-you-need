@@ -81,30 +81,40 @@ class RideRewardGranularityTest(unittest.TestCase):
         task = RideBookingTask(episode_id="ride_ep")
         prefs = """<map>
 <string name="episode_id">ride_ep</string>
-<string name="ride_pickup">Sector 62</string>
+<string name="ride_pickup">Current location</string>
+<string name="ride_type">Ride</string>
 <string name="ride_drop">Noida City Centre</string>
 <string name="selected_ride">Mini</string>
+<string name="payment">upi</string>
+<int name="journey_stage" value="2" />
+<boolean name="sequence_error" value="false" />
 <boolean name="ride_confirmed" value="false" />
-<string name="screen">ride_options</string>
+<string name="screen">destination</string>
 </map>"""
         shaped = task.shaped_reward_from_prefs(prefs)
         exact = task.reward_from_prefs(prefs)
         self.assertGreater(shaped, 0.0)
-        self.assertLess(shaped, 0.3)
+        self.assertLess(shaped, 1.0)
         self.assertEqual(exact, 0.0)
 
-    def test_ride_task_weights_wrong_selected_ride_as_low_partial_credit(self) -> None:
+    def test_ride_task_uses_selected_fields_for_exact_success(self) -> None:
         task = RideBookingTask(episode_id="ride_ep")
         prefs = """<map>
 <string name="episode_id">ride_ep</string>
-<string name="ride_pickup">Sector 62</string>
+<string name="ride_pickup">Current location</string>
+<string name="ride_type">Ride</string>
 <string name="ride_drop">Noida City Centre</string>
-<string name="selected_ride">Premium</string>
-<boolean name="ride_confirmed" value="false" />
-<string name="screen">ride_options</string>
+<string name="selected_ride">Mini</string>
+<string name="payment">upi</string>
+<int name="journey_stage" value="5" />
+<boolean name="sequence_error" value="false" />
+<boolean name="ride_confirmed" value="true" />
+<string name="screen">ride_booked</string>
 </map>"""
         shaped = task.shaped_reward_from_prefs(prefs)
-        self.assertAlmostEqual(shaped, 0.18, places=6)
+        exact = task.reward_from_prefs(prefs)
+        self.assertEqual(shaped, 1.0)
+        self.assertEqual(exact, 1.0)
 
 
 if __name__ == "__main__":

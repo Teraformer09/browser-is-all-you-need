@@ -8,13 +8,34 @@ import time
 from typing import Any
 
 from android_adk_rl_env.adb_device import AdbDevice
-from android_adk_rl_env.apk_env import DummyApkEnv
+from android_adk_rl_env.android_world_bridge import create_native_android_world_env
+from android_adk_rl_env.apk_env import ApkAction, DummyApkEnv
 from android_adk_rl_env.policies.openai_policy import OpenAIActionPolicy
 from android_adk_rl_env.policies.random import RandomApkPolicy
 from android_adk_rl_env.policies.scripted_policy import ScriptedApkPolicy
 from android_adk_rl_env.task_specs import EvalTaskSpec, build_known_task
 from android_adk_rl_env.tasks.checks import get_check
 from android_adk_rl_env.training.rollout import run_rollouts
+
+
+class _SequenceApkPolicy:
+    def __init__(self, actions: list[dict[str, Any]]) -> None:
+        self._actions = [ApkAction.from_dict(action) for action in actions]
+        self.reset()
+
+    def reset(self) -> None:
+        self._index = 0
+
+    def act(self, observation: dict[str, Any]) -> ApkAction:
+        del observation
+        if self._index >= len(self._actions):
+            return ApkAction("finish")
+        action = self._actions[self._index]
+        self._index += 1
+        return action
+
+    def get_last_metadata(self) -> dict[str, Any]:
+        return {}
 
 
 def run_task_spec(
@@ -29,9 +50,6 @@ def run_task_spec(
     max_steps: int | None = None,
 ) -> dict[str, Any]:
     started = time.perf_counter()
-    if backend != "adb":
-        raise RuntimeError(f"unsupported backend for current live path: {backend}")
-
     task = build_known_task(spec, attempt=attempt)
     if task is None:
         raise RuntimeError(f"task spec {spec.task_id} is not mapped to a runnable task type")
@@ -42,47 +60,90 @@ def run_task_spec(
         package=spec.app.package,
         serial=resolved_serial or None,
     )
-    health = run_device_healthcheck(device, package=spec.app.package) if healthcheck else {"skipped": True}
-    if install_apk and spec.app.apk_path:
-        device.install_apk(spec.app.apk_path)
 
-    if policy == "scripted":
-        raw = task.run_scripted(device)
-        final_observation = {
-            "task_id": raw.get("task_id", spec.task_id),
-            "episode_id": raw.get("episode_id"),
-            "task": raw.get("task"),
-            "goal": raw.get("goal", spec.goal),
-            "reward": float(raw.get("reward", 0.0)),
-            "final_reward": float(raw.get("final_reward", raw.get("reward", 0.0))),
-            "exact_success": bool(raw.get("final_reward", 0.0) >= 1.0),
-            "reward_components": raw.get("reward_components", {}),
-            "shared_prefs": raw.get("shared_prefs", ""),
-            "reset_metadata": raw.get("reset_metadata"),
-            "trajectory": raw.get("trajectory", []),
-        }
-        policy_metadata: dict[str, Any] = {}
-    else:
-        if spec.task_type not in {"dummy_form", "ride_booking"}:
-            raise RuntimeError(f"policy {policy} is not supported for task type {spec.task_type} in the current live path")
+    backend = backend.strip()
+    if backend == "adb":
+        health = run_device_healthcheck(device, package=spec.app.package) if healthcheck else {"skipped": True}
+        if install_apk and spec.app.apk_path:
+            device.install_apk(spec.app.apk_path)
 
-        def env_factory() -> DummyApkEnv:
-            return DummyApkEnv(
+        if policy == "scripted":
+            raw = task.run_scripted(device)
+            final_observation = {
+                "task_id": raw.get("task_id", spec.task_id),
+                "episode_id": raw.get("episode_id"),
+                "task": raw.get("task"),
+                "goal": raw.get("goal", spec.goal),
+                "reward": float(raw.get("reward", 0.0)),
+                "final_reward": float(raw.get("final_reward", raw.get("reward", 0.0))),
+                "exact_success": bool(raw.get("final_reward", 0.0) >= 1.0),
+                "reward_components": raw.get("reward_components", {}),
+                "shared_prefs": raw.get("shared_prefs", ""),
+                "reset_metadata": raw.get("reset_metadata"),
+                "trajectory": raw.get("trajectory", []),
+            }
+            policy_metadata: dict[str, Any] = {}
+        else:
+            if spec.task_type not in {"dummy_form", "ride_booking"}:
+                raise RuntimeError(f"policy {policy} is not supported for task type {spec.task_type} in the current live path")
+
+            def env_factory() -> DummyApkEnv:
+                return DummyApkEnv(
+                    task=task,  # type: ignore[arg-type]
+                    device=AdbDevice(
+                        adb_path=os.environ.get("ADB_PATH", "adb"),
+                        package=spec.app.package,
+                        serial=device.serial,
+                    ),
+                    max_steps=max_steps or spec.max_steps,
+                )
+
+            def policy_factory() -> Any:
+                if policy == "openai":
+                    return OpenAIActionPolicy()
+                if policy == "random":
+                    return RandomApkPolicy(seed=attempt + 7)
+                return ScriptedApkPolicy(task)  # pragma: no cover - defensive fallback
+
+            rollout = run_rollouts(env_factory=env_factory, policy_factory=policy_factory, episodes=1)[0]
+            final_observation = dict(rollout.get("final_observation", {}))
+            final_observation["trajectory"] = rollout.get("transitions", [])
+            policy_metadata = {
+                "total_prompt_tokens": int(rollout.get("total_prompt_tokens", 0) or 0),
+                "total_completion_tokens": int(rollout.get("total_completion_tokens", 0) or 0),
+                "estimated_openai_cost_usd": rollout.get("estimated_openai_cost_usd"),
+            }
+    elif backend == "android_world":
+        health = {"skipped": True} if not healthcheck else {"skipped": True}
+        if install_apk and spec.app.apk_path:
+            device.install_apk(spec.app.apk_path)
+
+        console_port = _resolve_android_world_console_port(resolved_serial)
+        grpc_port = int(os.environ.get("ANDROID_WORLD_GRPC_PORT", "8554"))
+        wait_to_stabilize = os.environ.get("ANDROID_WORLD_WAIT_TO_STABILIZE", "0") == "1"
+
+        def env_factory() -> Any:
+            return create_native_android_world_env(
+                console_port=console_port,
+                adb_path=os.environ.get("ADB_PATH", "adb"),
+                adb_serial=resolved_serial or None,
+                grpc_port=grpc_port,
                 task=task,  # type: ignore[arg-type]
-                device=AdbDevice(
-                    adb_path=os.environ.get("ADB_PATH", "adb"),
-                    package=spec.app.package,
-                    serial=device.serial,
-                ),
                 max_steps=max_steps or spec.max_steps,
+                shaped_rewards=spec.reward.mode != "binary",
+                wait_to_stabilize=wait_to_stabilize,
             )
 
         def policy_factory() -> Any:
+            if policy == "scripted":
+                if hasattr(task, "action_sequence"):
+                    return _SequenceApkPolicy(task.action_sequence())
+                return ScriptedApkPolicy(task)
             if policy == "openai":
                 return OpenAIActionPolicy()
             if policy == "random":
                 return RandomApkPolicy(seed=attempt + 7)
-            return ScriptedApkPolicy(task)  # pragma: no cover - defensive fallback
+            raise RuntimeError(f"unsupported policy for AndroidWorld backend: {policy}")
 
         rollout = run_rollouts(env_factory=env_factory, policy_factory=policy_factory, episodes=1)[0]
         final_observation = dict(rollout.get("final_observation", {}))
@@ -91,7 +152,11 @@ def run_task_spec(
             "total_prompt_tokens": int(rollout.get("total_prompt_tokens", 0) or 0),
             "total_completion_tokens": int(rollout.get("total_completion_tokens", 0) or 0),
             "estimated_openai_cost_usd": rollout.get("estimated_openai_cost_usd"),
+            "android_world_console_port": console_port,
+            "android_world_grpc_port": grpc_port,
         }
+    else:
+        raise RuntimeError(f"unsupported backend for current live path: {backend}")
 
     success_score = evaluate_success(spec, final_observation)
     reward_value = _select_reward(spec, final_observation)
@@ -164,6 +229,19 @@ def resolve_adb_serial(adb_path: str) -> str | None:
     return None
 
 
+def _resolve_android_world_console_port(serial: str | None) -> int:
+    if serial:
+        if serial.startswith("emulator-"):
+            suffix = serial.removeprefix("emulator-")
+            if suffix.isdigit():
+                return max(1, int(suffix))
+        if ":" in serial:
+            suffix = serial.rsplit(":", 1)[-1]
+            if suffix.isdigit():
+                return max(1, int(suffix) - 1)
+    return int(os.environ.get("ANDROID_WORLD_CONSOLE_PORT", "5554"))
+
+
 def _select_reward(spec: EvalTaskSpec, observation: dict[str, Any]) -> float:
     if spec.reward.mode == "fractional":
         return float(observation.get("reward", 0.0) or 0.0)
@@ -187,7 +265,7 @@ def _evaluate_expression(expression: str, observation: dict[str, Any]) -> bool:
 
 def _parse_prefs_like_state(raw: str) -> dict[str, str]:
     state: dict[str, str] = {}
-    for name in ("episode_id", "query", "name", "email", "screen", "submitted", "ride_pickup", "ride_drop", "selected_ride", "ride_confirmed", "ride_cancelled", "payment", "coupon"):
+    for name in ("episode_id", "query", "name", "email", "screen", "submitted", "ride_pickup", "ride_drop", "selected_ride", "ride_type", "destination_query", "selected_cab_type", "ride_confirmed", "ride_cancelled", "payment", "payment_type", "coupon", "journey_stage", "sequence_error"):
         marker = f'name="{name}"'
         if marker not in raw:
             continue

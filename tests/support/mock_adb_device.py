@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import json
-import time
-from copy import deepcopy
 from dataclasses import dataclass
 
 from android_adk_rl_env.tasks.dummy_apk import DummyApkFormSearchTask
@@ -39,14 +36,17 @@ class MockAdbDevice:
         self.name_text = ""
         self.email = ""
         self.submitted = False
-        self.ride_pickup = ""
-        self.ride_drop = ""
-        self.selected_ride = ""
+        self.pickup = "Current location"
+        self.destination = ""
+        self.ride_type = ""
+        self.cab_type = ""
         self.payment = ""
         self.coupon = ""
+        self.journey_stage = 0
+        self.sequence_error = False
         self.ride_confirmed = False
         self.ride_cancelled = False
-        self.screen = "form"
+        self.screen = "ride"
         self.focus = None
         self.last_tap: tuple[int, int] | None = None
         self.updated_at_ms = 0
@@ -75,7 +75,7 @@ class MockAdbDevice:
         self.episode_id = episode_id or ""
         extras = extras or {}
         self.seed = int(extras.get("seed", getattr(self.task, "seed", 0)))
-        self.screen = str(extras.get("start_screen", "form"))
+        self.screen = str(extras.get("start_screen", "ride"))
         self._touch_state()
 
     def reset_app(self, episode_id: str | None = None, extras: dict[str, str | int | bool] | None = None) -> None:
@@ -115,15 +115,35 @@ class MockAdbDevice:
             else:
                 self.submitted = False
                 self.screen = "validation_error"
+        elif resource_name == "ride_type_ride":
+            self.ride_type = "Ride"
+            self._advance_stage(1, "ride_type")
+        elif resource_name == "ride_type_reserve":
+            self.ride_type = "Reserve"
+            self._advance_stage(1, "ride_type")
+        elif resource_name == "ride_type_premium":
+            self.ride_type = "Premium"
+            self._advance_stage(1, "ride_type")
         elif resource_name == "ride_option_mini":
-            self.selected_ride = "Mini"
-            self.screen = "ride_options"
+            self.cab_type = "Mini"
+            self._advance_stage(3, "cab_type")
         elif resource_name == "ride_option_sedan":
-            self.selected_ride = "Sedan"
-            self.screen = "ride_options"
+            self.cab_type = "Sedan"
+            self._advance_stage(3, "cab_type")
         elif resource_name == "ride_option_premium":
-            self.selected_ride = "Premium"
-            self.screen = "ride_options"
+            self.cab_type = "Premium"
+            self._advance_stage(3, "cab_type")
+        elif resource_name == "location_suggestion_1":
+            self.screen = "destination_suggestions"
+        elif resource_name == "location_suggestion_2":
+            self.screen = "destination_suggestions"
+        elif resource_name == "destination_search_button":
+            if self.destination and not self.sequence_error and self.journey_stage == 1:
+                self.journey_stage = 2
+                self.screen = "destination"
+            else:
+                self.sequence_error = True
+                self.screen = "ride_validation_error"
         elif resource_name == "apply_coupon_button":
             self.focus = "coupon_input"
             self.screen = "coupon"
@@ -131,17 +151,27 @@ class MockAdbDevice:
             self.screen = "coupon"
         elif resource_name == "payment_cash":
             self.payment = "cash"
-            self.screen = "payment"
+            self._advance_stage(4, "payment")
+        elif resource_name == "payment_card":
+            self.payment = "card"
+            self._advance_stage(4, "payment")
         elif resource_name == "payment_upi":
             self.payment = "upi"
-            self.screen = "payment"
+            self._advance_stage(4, "payment")
         elif resource_name == "confirm_ride_button":
-            self.ride_confirmed = bool(self.ride_pickup and self.ride_drop and self.selected_ride)
-            self.ride_cancelled = False
-            self.screen = "driver_assigned" if self.ride_confirmed else "ride_validation_error"
+            if self.journey_stage >= 4 and not self.sequence_error:
+                self.ride_confirmed = True
+                self.ride_cancelled = False
+                self.journey_stage = 5
+                self.screen = "ride_booked"
+            else:
+                self.sequence_error = True
+                self.ride_confirmed = False
+                self.screen = "ride_validation_error"
         elif resource_name == "cancel_ride_button":
             self.ride_cancelled = True
             self.ride_confirmed = False
+            self.journey_stage = 5
             self.screen = "ride_cancelled"
         self._touch_state()
 
@@ -154,9 +184,10 @@ class MockAdbDevice:
         elif resource_name == "email_input":
             self.email = text
         elif resource_name == "pickup_input":
-            self.ride_pickup = text
+            self.pickup = text
         elif resource_name == "drop_input":
-            self.ride_drop = text
+            self.destination = text
+            self.screen = "destination"
         elif resource_name == "coupon_input":
             self.coupon = text
         self._touch_state()
@@ -198,23 +229,29 @@ class MockAdbDevice:
             "submit_button": "Submit Form",
             "clear_button": "Clear",
             "status_text": self.status_text(),
-            "pickup_input": self.ride_pickup,
-            "drop_input": self.ride_drop,
-            "location_suggestion_1": "Use suggestion 1",
-            "location_suggestion_2": "Use suggestion 2",
+            "pickup_input": self.pickup,
+            "drop_input": self.destination,
+            "location_suggestion_1": "Airport",
+            "location_suggestion_2": "City Center",
+            "destination_search_button": "Search Destination",
+            "ride_type_ride": "Ride",
+            "ride_type_reserve": "Reserve",
+            "ride_type_premium": "Premium",
             "ride_option_mini": "Mini",
             "ride_option_sedan": "Sedan",
             "ride_option_premium": "Premium",
-            "cheapest_badge": "Cheapest: Mini",
             "apply_coupon_button": "Apply Coupon",
             "coupon_input": self.coupon,
             "coupon_apply_button": "Save Coupon",
             "payment_cash": "Cash",
+            "payment_card": "Card",
             "payment_upi": "UPI",
-            "confirm_ride_button": "Confirm Ride",
+            "confirm_ride_button": "Book Ride",
             "cancel_ride_button": "Cancel Ride",
             "final_status_text": self.ride_status_text(),
-            "debug_state_text": self.debug_state_text,
+            "route_summary_text": self.route_summary_text(),
+            "ride_progress_text": self.ride_progress_text(),
+            "ride_debug_state_text": self.debug_state_text,
         }
         return [
             {
@@ -237,105 +274,113 @@ class MockAdbDevice:
         submitted = "true" if self.submitted else "false"
         ride_confirmed = "true" if self.ride_confirmed else "false"
         ride_cancelled = "true" if self.ride_cancelled else "false"
-        return (
-            "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\" ?>\n"
-            "<map>\n"
-            f"    <string name=\"episode_id\">{self.episode_id}</string>\n"
-            f"    <boolean name=\"submitted\" value=\"{submitted}\" />\n"
-            f"    <string name=\"query\">{self.query}</string>\n"
-            f"    <string name=\"name\">{self.name_text}</string>\n"
-            f"    <string name=\"email\">{self.email}</string>\n"
-            f"    <string name=\"ride_pickup\">{self.ride_pickup}</string>\n"
-            f"    <string name=\"ride_drop\">{self.ride_drop}</string>\n"
-            f"    <string name=\"selected_ride\">{self.selected_ride}</string>\n"
-            f"    <string name=\"payment\">{self.payment}</string>\n"
-            f"    <string name=\"coupon\">{self.coupon}</string>\n"
-            f"    <boolean name=\"ride_confirmed\" value=\"{ride_confirmed}\" />\n"
-            f"    <boolean name=\"ride_cancelled\" value=\"{ride_cancelled}\" />\n"
-            f"    <string name=\"screen\">{self.screen}</string>\n"
-            f"    <long name=\"updated_at_ms\" value=\"{self.updated_at_ms}\" />\n"
-            f"    <int name=\"seed\" value=\"{self.seed}\" />\n"
-            "</map>\n"
-        )
-
-    def device_info(self) -> dict[str, str]:
-        return {
-            "backend": "adb",
-            "serial": "mock-serial",
-            "api_level": "test",
-            "build_fingerprint": "mock/fingerprint",
-            "screen_size": "Physical size: 1080x1920",
-            "screen_density": "Physical density: 420",
-            "locale": "en-US",
-            "timezone": "UTC",
-            "package": self.task.package,
-        }
+        sequence_error = "true" if self.sequence_error else "false"
+        return f"""<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<map>
+    <string name="episode_id">{self.episode_id}</string>
+    <boolean name="submitted" value="{submitted}" />
+    <string name="query">{self.query}</string>
+    <string name="name">{self.name_text}</string>
+    <string name="email">{self.email}</string>
+    <string name="ride_pickup">{self.pickup}</string>
+    <string name="ride_drop">{self.destination}</string>
+    <string name="destination_query">{self.destination}</string>
+    <string name="ride_type">{self.ride_type}</string>
+    <string name="selected_ride">{self.cab_type}</string>
+    <string name="selected_cab_type">{self.cab_type}</string>
+    <string name="payment">{self.payment}</string>
+    <string name="payment_type">{self.payment}</string>
+    <string name="coupon">{self.coupon}</string>
+    <int name="journey_stage" value="{self.journey_stage}" />
+    <boolean name="sequence_error" value="{sequence_error}" />
+    <boolean name="ride_confirmed" value="{ride_confirmed}" />
+    <boolean name="ride_cancelled" value="{ride_cancelled}" />
+    <string name="screen">{self.screen}</string>
+    <long name="updated_at_ms" value="{self.updated_at_ms}" />
+    <int name="seed" value="{self.seed}" />
+</map>
+"""
 
     def status_text(self) -> str:
         if self.submitted:
-            return f"Submitted: {self.name_text} <{self.email}>"
-        if self.screen == "validation_error":
-            return "Status: missing fields"
+            return f"Status: submitted {self.name_text} <{self.email}>"
+        if self.query:
+            return f"Status: search {self.query}"
         return "Status: waiting"
 
     def ride_status_text(self) -> str:
         if self.ride_cancelled:
-            return "Ride cancelled"
+            return f"Ride cancelled on stage {self.journey_stage}"
         if self.ride_confirmed:
-            return f"Driver assigned: {self.selected_ride}"
-        if self.screen == "ride_validation_error":
-            return "Ride status: missing fields"
-        if self.selected_ride:
-            return f"Ride selected: {self.selected_ride}"
-        return "Ride status: waiting"
+            return f"Ride booked: {self.ride_type} / {self.cab_type} / {self.payment}"
+        if self.sequence_error:
+            return "Ride status: sequence error"
+        return "Ride status: choose a ride type"
 
-    def _touch_state(self) -> None:
-        self.updated_at_ms = int(time.time() * 1000)
-        self.debug_state_text = json.dumps(
-            {
-                "coupon": self.coupon,
-                "email": self.email,
-                "episode_id": self.episode_id,
-                "name": self.name_text,
-                "payment": self.payment,
-                "query": self.query,
-                "ride_cancelled": self.ride_cancelled,
-                "ride_confirmed": self.ride_confirmed,
-                "ride_drop": self.ride_drop,
-                "ride_pickup": self.ride_pickup,
-                "screen": self.screen,
-                "seed": self.seed,
-                "selected_ride": self.selected_ride,
-                "submitted": self.submitted,
-                "updated_at_ms": self.updated_at_ms,
-            },
-            sort_keys=True,
+    def route_summary_text(self) -> str:
+        return (
+            f"Pickup={self.pickup} | Ride={self.ride_type or 'not set'} | "
+            f"Destination={self.destination or 'not set'} | Cab={self.cab_type or 'not set'} | "
+            f"Payment={self.payment or 'not set'}"
         )
+
+    def ride_progress_text(self) -> str:
+        return f"Step {self.journey_stage}/5"
+
+    def _advance_stage(self, expected_stage: int, event: str) -> None:
+        if self.sequence_error:
+            return
+        if self.journey_stage == expected_stage - 1:
+            self.journey_stage = expected_stage
+            self.screen = event
+        else:
+            self.sequence_error = True
+            self.screen = "ride_validation_error"
 
     def _capture_state(self) -> dict[str, object]:
-        return deepcopy(
-            {
-                "episode_id": self.episode_id,
-                "query": self.query,
-                "name_text": self.name_text,
-                "email": self.email,
-                "submitted": self.submitted,
-                "ride_pickup": self.ride_pickup,
-                "ride_drop": self.ride_drop,
-                "selected_ride": self.selected_ride,
-                "payment": self.payment,
-                "coupon": self.coupon,
-                "ride_confirmed": self.ride_confirmed,
-                "ride_cancelled": self.ride_cancelled,
-                "screen": self.screen,
-                "focus": self.focus,
-                "last_tap": self.last_tap,
-                "updated_at_ms": self.updated_at_ms,
-                "seed": self.seed,
-                "debug_state_text": self.debug_state_text,
-            }
-        )
+        return {
+            "episode_id": self.episode_id,
+            "query": self.query,
+            "name_text": self.name_text,
+            "email": self.email,
+            "submitted": self.submitted,
+            "pickup": self.pickup,
+            "destination": self.destination,
+            "ride_type": self.ride_type,
+            "cab_type": self.cab_type,
+            "payment": self.payment,
+            "coupon": self.coupon,
+            "journey_stage": self.journey_stage,
+            "sequence_error": self.sequence_error,
+            "ride_confirmed": self.ride_confirmed,
+            "ride_cancelled": self.ride_cancelled,
+            "screen": self.screen,
+            "updated_at_ms": self.updated_at_ms,
+            "seed": self.seed,
+            "debug_state_text": self.debug_state_text,
+        }
 
     def _restore_state(self, state: dict[str, object]) -> None:
-        for key, value in state.items():
-            setattr(self, key, value)
+        self.episode_id = str(state.get("episode_id", ""))
+        self.query = str(state.get("query", ""))
+        self.name_text = str(state.get("name_text", ""))
+        self.email = str(state.get("email", ""))
+        self.submitted = bool(state.get("submitted", False))
+        self.pickup = str(state.get("pickup", "Current location"))
+        self.destination = str(state.get("destination", ""))
+        self.ride_type = str(state.get("ride_type", ""))
+        self.cab_type = str(state.get("cab_type", ""))
+        self.payment = str(state.get("payment", ""))
+        self.coupon = str(state.get("coupon", ""))
+        self.journey_stage = int(state.get("journey_stage", 0))
+        self.sequence_error = bool(state.get("sequence_error", False))
+        self.ride_confirmed = bool(state.get("ride_confirmed", False))
+        self.ride_cancelled = bool(state.get("ride_cancelled", False))
+        self.screen = str(state.get("screen", "ride"))
+        self.updated_at_ms = int(state.get("updated_at_ms", 0))
+        self.seed = int(state.get("seed", 0))
+        self.debug_state_text = str(state.get("debug_state_text", "{}"))
+
+    def _touch_state(self) -> None:
+        self.updated_at_ms += 1
+        self.debug_state_text = self.route_summary_text()

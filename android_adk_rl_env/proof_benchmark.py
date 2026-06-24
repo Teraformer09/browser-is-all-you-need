@@ -37,8 +37,6 @@ def run_proof_benchmark(
     pass_k = sorted(set(int(value) for value in (pass_k or [1, 2, 3, 5, 10]) if int(value) > 0))
     if not pass_k:
         raise ValueError("at least one positive k value is required")
-    if backend != "adb":
-        raise RuntimeError("Proof benchmark supports adb-only execution in this proof path")
     if policy == "openai" and not os.environ.get("OPENAI_API_KEY"):
         raise RuntimeError("OPENAI_API_KEY is required for --policy openai")
 
@@ -143,8 +141,8 @@ def run_proof_benchmark(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--backend", default="adb", choices=["adb"])
     parser.add_argument("--policy", default="scripted", choices=["scripted", "openai", "random"])
+    parser.add_argument("--backend", default="adb", choices=["adb", "android_world"])
     parser.add_argument(
         "--attempts-per-instance",
         type=int,

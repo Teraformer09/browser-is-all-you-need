@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import importlib
 import os
+import subprocess
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -60,6 +61,32 @@ def _resolve_android_world_a11y_method(controller_mod: Any) -> Any:
         supported = ", ".join(sorted(methods))
         raise ValueError(f"Unsupported ANDROID_WORLD_A11Y_METHOD={raw!r}. Use one of: {supported}")
     return methods[raw]
+
+
+def _patch_android_env_uiautomator_dump() -> None:
+    adb_controller_mod = importlib.import_module("android_env.components.adb_controller")
+    if getattr(adb_controller_mod.AdbController, "_prime_uiautomator_patched", False):
+        return
+
+    original_execute_command = adb_controller_mod.AdbController.execute_command
+
+    def patched_execute_command(self, args, timeout=None, device_specific=True):
+        if list(args) == ["shell", "uiautomator", "dump", "/sdcard/window_dump.xml"]:
+            timeout = self._config.default_timeout if timeout is None else timeout
+            command = self.command_prefix(include_device_name=device_specific) + list(args)
+            output = subprocess.run(
+                command,
+                stderr=subprocess.STDOUT,
+                timeout=timeout,
+                env=self._os_env_vars,
+                check=False,
+                stdout=subprocess.PIPE,
+            )
+            return output.stdout
+        return original_execute_command(self, args, timeout=timeout, device_specific=device_specific)
+
+    adb_controller_mod.AdbController.execute_command = patched_execute_command
+    adb_controller_mod.AdbController._prime_uiautomator_patched = True
 
 
 def _create_android_world_controller(
@@ -122,6 +149,13 @@ class AndroidWorldDummyApkEnv:
         self.shaped_rewards = shaped_rewards
         self.wait_to_stabilize = wait_to_stabilize
         self.observation_mode = observation_mode
+        self.resource_executor = os.environ.get("ANDROID_WORLD_RESOURCE_EXECUTOR", "android_world").strip().lower()
+        self.skip_ui_state = os.environ.get("ANDROID_WORLD_SKIP_UI_STATE", "0").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
         self.steps = 0
         self.done = False
         self.last_error: str | None = None
@@ -135,14 +169,15 @@ class AndroidWorldDummyApkEnv:
         self.done = False
         self.last_error = None
         self.last_action = None
-        # Refresh AndroidWorld state after app launch. Keep this permissive so
-        # test doubles can use a simpler reset signature.
-        try:
-            self.android_env.reset(go_home=False)
-        except TypeError:
-            self.android_env.reset()
-        except Exception as exc:  # noqa: BLE001
-            self.last_error = f"android_world_reset_failed: {type(exc).__name__}: {exc}"
+        # Refresh AndroidWorld state after app launch unless the opt-in ADB
+        # resource executor is being used to avoid blocking UI-state polling.
+        if not (self.resource_executor == "adb" and self.skip_ui_state):
+            try:
+                self.android_env.reset(go_home=False)
+            except TypeError:
+                self.android_env.reset()
+            except Exception as exc:  # noqa: BLE001
+                self.last_error = f"android_world_reset_failed: {type(exc).__name__}: {exc}"
         return self.observe()
 
     def step(self, raw_action: ApkAction | dict[str, Any]) -> StepResult:
@@ -258,7 +293,7 @@ class AndroidWorldDummyApkEnv:
         if action.action in {"click_resource", "input_resource"}:
             if action.target not in self.task.resource_names:
                 return f"unsupported target for {action.action}: {action.target}"
-            if self._find_element_index(action.target) is None:
+            if self.resource_executor != "adb" and self._find_element_index(action.target) is None:
                 return f"resource not visible in AndroidWorld state: {action.target}"
         if action.action == "input_resource" and action.text is None:
             return "input_resource requires text"
@@ -273,6 +308,9 @@ class AndroidWorldDummyApkEnv:
         return None
 
     def _execute(self, action: ApkAction) -> None:
+        if self.resource_executor == "adb" and self._execute_with_adb(action):
+            return
+
         json_action = self._json_action_module()
         if action.action == "click_resource":
             index = self._require_element_index(action.target)
@@ -311,6 +349,37 @@ class AndroidWorldDummyApkEnv:
                 json_action.JSONAction(action_type=json_action.STATUS, goal_status="complete")
             )
 
+    def _execute_with_adb(self, action: ApkAction) -> bool:
+        if action.action == "click_resource" and action.target:
+            self.adb_device.click_resource(action.target)
+            return True
+        if action.action == "input_resource" and action.target:
+            self.adb_device.input_resource(action.target, action.text or "")
+            self.adb_device.press_back()
+            return True
+        if action.action == "tap_coordinates" and action.x is not None and action.y is not None:
+            self.adb_device.tap_coordinates(action.x, action.y)
+            return True
+        if action.action == "press_back":
+            self.adb_device.press_back()
+            return True
+        if action.action == "press_home":
+            self.adb_device.press_home()
+            return True
+        if action.action == "swipe" and all(value is not None for value in (action.x1, action.y1, action.x2, action.y2)):
+            self.adb_device.swipe(
+                int(action.x1 or 0),
+                int(action.y1 or 0),
+                int(action.x2 or 0),
+                int(action.y2 or 0),
+                int(action.duration_ms or 300),
+            )
+            return True
+        if action.action == "wait":
+            time.sleep(0.5)
+            return True
+        return False
+
     def _require_element_index(self, resource_name: str | None) -> int:
         index = self._find_element_index(resource_name)
         if index is None:
@@ -335,6 +404,8 @@ class AndroidWorldDummyApkEnv:
         return "down" if dy > 0 else "up"
 
     def _safe_get_ui_nodes(self) -> tuple[list[dict[str, object]], str | None]:
+        if self.skip_ui_state:
+            return [], "skipped_by_ANDROID_WORLD_SKIP_UI_STATE"
         try:
             return [self._ui_element_to_dict(element) for element in self._get_state_ui_elements()], None
         except Exception as exc:  # noqa: BLE001
@@ -413,6 +484,7 @@ def create_native_android_world_env(
     """Creates a DummyApkEnv using AndroidWorld's controller + AsyncEnv."""
 
     require_android_world()
+    _patch_android_env_uiautomator_dump()
     controller_mod = importlib.import_module("android_world.env.android_world_controller")
     interface_mod = importlib.import_module("android_world.env.interface")
     controller = _create_android_world_controller(

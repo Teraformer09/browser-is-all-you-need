@@ -116,11 +116,69 @@ Spec-driven benchmark:
 python3 -m android_adk_rl_env.cli benchmark --tasks-dir tasks --samples-per-task 10 --pass-k 1 2 3 5 10
 ```
 
+Uber clone AndroidWorld benchmark:
+
+```bash
+docker exec \
+  -e ADB_SERIAL=emulator-5554 \
+  -e ADB_CMD_TIMEOUT_S=60 \
+  -e ANDROID_WORLD_GRPC_PORT=8554 \
+  -e ANDROID_WORLD_WAIT_TO_STABILIZE=0 \
+  -e ANDROID_WORLD_RESOURCE_EXECUTOR=adb \
+  -e ANDROID_WORLD_SKIP_UI_STATE=1 \
+  -e RESET_MODE=full \
+  -e POOL_SIZE=1 \
+  androidworld-pipeline \
+  bash -lc 'cd /workspace && PYTHONPATH=/workspace python3 -B -m android_adk_rl_env.proof_benchmark \
+    --backend android_world \
+    --policy scripted \
+    --tasks-dir tasks/uber_clone \
+    --attempts-per-instance 10 \
+    --pass-k 1 2 3 5 10 \
+    --max-steps 12 \
+    --pool-size 1 \
+    --output artifacts/benchmarks/uber30_androidworld'
+```
+
+Prime eval:
+
+```bash
+./scripts/mobile_rl.sh prime-eval --backend android_world --max-turns 15
+```
+
+## Generated Benchmark
+
+Live AndroidWorld Uber clone benchmark generated on `2026-06-24`:
+
+- artifact directory: `artifacts/benchmarks/uber30_androidworld/20260624_122413`
+- benchmark family: `tasks/uber_clone`
+- backend: `android_world`
+- policy: `scripted`
+- task count: `30`
+- samples per task: `10`
+- total attempts: `300`
+- exact successes: `300`
+- exact success rate: `1.0`
+- average reward: `1.0`
+- average steps: `7`
+- `pass@1 = 1.0`
+- `pass@2 = 1.0`
+- `pass@3 = 1.0`
+- `pass@5 = 1.0`
+- `pass@10 = 1.0`
+
+Generated runtime artifacts are intentionally ignored by git. The benchmark summary is available locally at:
+
+```text
+artifacts/benchmarks/uber30_androidworld/20260624_122413/summary.json
+```
+
 ## What Is Working
 
 - Unit and integration tests
 - AndroidWorld and Prime smoke tests in the repo test suite
 - Real demo-APK form spec execution on emulator through `mobile-rl eval`
+- Uber clone 30-task AndroidWorld benchmark with pass@1/2/3/5/10
 - Strict `pass@k` and reward-calibration test coverage
 - Spec-driven benchmark artifacts through the new CLI path
 - pool-aware execution logic
@@ -128,7 +186,7 @@ python3 -m android_adk_rl_env.cli benchmark --tasks-dir tasks --samples-per-task
 
 ## Known Gap
 
-The ride-booking specs are implemented, but the live ride path was not revalidated in this pass. The currently confirmed real-device success path is the form spec through `mobile-rl eval`.
+The scripted Uber clone ride-booking benchmark is live validated on AndroidWorld. Model-backed ride quality still depends on the configured provider/model and should be measured separately from the scripted benchmark.
 
 ## Main Docs
 

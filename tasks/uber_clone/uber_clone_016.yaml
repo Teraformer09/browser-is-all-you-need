@@ -1,0 +1,31 @@
+task_id: uber_clone_016
+benchmark_family: uber_clone
+task_type: ride_booking
+policy_hint: scripted
+tags:
+  - benchmark
+  - ride
+  - uber_clone
+app:
+  package: com.primeintellect.dummyrl
+  apk_path: dummy_android_app/build/out/dummy-rl-app.apk
+setup:
+  start_screen: ride
+  difficulty: medium
+goal: Open the app, select the Ride ride type, search for "Old City Market", choose the Premium cab, pay with CARD, and book the ride.
+max_steps: 12
+success:
+  type: registered_check
+  check: ride_booking_exact
+  threshold: 1.0
+reward:
+  mode: fractional
+parameters:
+  pickup: Current location
+  ride_type: Ride
+  destination: Old City Market
+  selected_ride: Premium
+  payment: card
+  coupon: ""
+  cancel_after_assignment: false
+  seed: 3015

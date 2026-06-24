@@ -264,6 +264,15 @@ class DummyApkEnv:
             finish_after_success=self.finish_after_success,
         )
         reward = -1.0 if self.reset_failed else (shaped_reward if self.shaped_rewards else final_reward)
+        valid_targets = []
+        for node in ui_nodes:
+            node_id = node.get("id")
+            if node_id and node_id not in valid_targets:
+                valid_targets.append(str(node_id))
+        for name in getattr(self.task, "resource_names", ()):
+            if name and name not in valid_targets:
+                valid_targets.append(str(name))
+
         raw = {
             "task": self.task.name_label,
             "task_id": self.task.task_id,
@@ -279,6 +288,8 @@ class DummyApkEnv:
             "max_steps": self.max_steps,
             "done": self.done,
             "ui": ui_nodes,
+            "valid_targets": valid_targets,
+            "visible_targets": [str(node.get("id")) for node in ui_nodes if node.get("id")],
             "ui_error": ui_error,
             "ui_tree_xml": ui_tree_xml,
             "last_action": self.last_action,

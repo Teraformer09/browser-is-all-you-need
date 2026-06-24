@@ -40,6 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark_parser = subparsers.add_parser("benchmark", help="Run benchmark task specs.")
     benchmark_parser.add_argument("--tasks-dir", default="tasks")
     benchmark_parser.add_argument("--policy", default="scripted", choices=["scripted", "openai", "random"])
+    benchmark_parser.add_argument("--backend", default="adb", choices=["adb", "android_world"])
     benchmark_parser.add_argument(
         "--samples-per-task",
         type=int,
@@ -105,7 +106,7 @@ def _run_eval_command(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 def _run_benchmark_command(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     try:
         summary = run_proof_benchmark(
-            backend="adb",
+            backend=args.backend,
             policy=args.policy,
             attempts_per_instance=args.samples_per_task,
             pass_k=args.pass_k,

@@ -13,6 +13,11 @@ BUILD_TOOLS="${ANDROID_BUILD_TOOLS:-$DEFAULT_BUILD_TOOLS}"
 ANDROID_JAR="${ANDROID_JAR:-$SDK_ROOT/platforms/android-34/android.jar}"
 KEYSTORE_CACHE="$APP_DIR/debug.keystore"
 
+if [[ -f "$BUILD_DIR/out/dummy-rl-app.apk" ]]; then
+  echo "$BUILD_DIR/out/dummy-rl-app.apk"
+  exit 0
+fi
+
 AAPT="$BUILD_TOOLS/aapt"
 D8="$BUILD_TOOLS/d8"
 ZIPALIGN="$BUILD_TOOLS/zipalign"

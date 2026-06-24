@@ -26,6 +26,9 @@ outputs/
 
 # Android/generated outputs
 dummy_android_app/build/
+!dummy_android_app/build/
+!dummy_android_app/build/out/
+!dummy_android_app/build/out/dummy-rl-app.apk
 dummy_android_app/debug.keystore
 *.keystore
 *.idsig

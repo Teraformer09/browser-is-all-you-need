@@ -25,13 +25,16 @@ Allowed actions:
 - swipe: requires x1, y1, x2, y2, duration_ms
 - wait: no target or text
 - finish: use only after final_reward is 1.0
-For Dummy RL App, follow this priority exactly:
-1. If reward_components.query is false, type expected_state.query into search_input.
-2. If search_input has the expected query and search_result is still none, click search_button.
-3. If reward_components.name is false, type expected_state.name into name_input.
-4. If reward_components.email is false, type expected_state.email into email_input.
-5. If reward_components.submitted is false after query/name/email are filled, click submit_button.
-6. Use finish only when final_reward is 1.0.
+For ride-booking tasks, follow this priority exactly:
+1. If pickup is not filled, type expected_state.ride_pickup into pickup_input.
+2. If the ride type is not selected, tap the matching ride_type button.
+3. If destination is not filled, type expected_state.ride_drop into drop_input.
+4. Tap destination_search_button after the destination is entered.
+5. If cab type is not selected, tap the matching ride_option button.
+6. If payment is not selected, tap the matching payment button.
+7. Tap confirm_ride_button once the earlier fields are complete.
+8. Use finish only when final_reward is 1.0.
+For the legacy form task, preserve the search/name/email flow if those fields appear instead.
 If last_error says finish was premature, choose the missing click/input action instead.
 Only use resource IDs visible in the observation. Return JSON only."""
 
@@ -100,6 +103,8 @@ class OpenAIActionPolicy:
                     "content": "Observation JSON:\n" + json.dumps(self._compact_observation(observation), sort_keys=True),
                 },
             ],
+            "max_output_tokens": 64,
+            "temperature": 0,
             "text": {
                 "format": {
                     "type": "json_schema",
@@ -124,14 +129,19 @@ class OpenAIActionPolicy:
 
     def _compact_observation(self, observation: dict[str, Any]) -> dict[str, Any]:
         reward_components = observation.get("reward_components") or {}
+        raw_valid_targets = observation.get("valid_targets") or []
         ui = observation.get("ui", [])
         valid_targets = []
+        for target in raw_valid_targets:
+            target_text = str(target)
+            if target_text and target_text not in valid_targets:
+                valid_targets.append(target_text)
         visible_text = []
         for node in ui:
             node_id = node.get("id")
             node_text = node.get("text") or node.get("content_description")
             if node_id and node_id not in valid_targets:
-                valid_targets.append(node_id)
+                valid_targets.append(str(node_id))
             if node_text and len(visible_text) < 8:
                 visible_text.append(str(node_text))
         return {
@@ -232,6 +242,8 @@ class OpenAIActionPolicy:
             "search_input": str(expected.get("query") or ""),
             "name_input": str(expected.get("name") or ""),
             "email_input": str(expected.get("email") or ""),
+            "pickup_input": str(expected.get("ride_pickup") or expected.get("pickup") or ""),
+            "drop_input": str(expected.get("ride_drop") or expected.get("destination") or ""),
         }
         canonical_text = expected_text_by_target.get(action.target)
         if canonical_text is None:
@@ -275,6 +287,60 @@ class OpenAIActionPolicy:
             if target not in valid_targets:
                 return None
             return ApkAction(action="click_resource", target=target)
+
+        ride_pickup = str(expected.get("ride_pickup") or expected.get("pickup") or "")
+        ride_drop = str(expected.get("ride_drop") or expected.get("destination") or "")
+        ride_type = str(expected.get("ride_type") or "")
+        selected_ride = str(expected.get("selected_ride") or expected.get("cab_type") or "")
+        payment = str(expected.get("payment") or expected.get("payment_type") or "")
+
+        if any(key in expected for key in ("ride_pickup", "pickup", "ride_drop", "destination", "ride_type", "selected_ride", "cab_type", "payment", "payment_type")):
+            if not reward_components.get("pickup_match", False):
+                action = input_action("pickup_input", ride_pickup)
+                if action is not None:
+                    return action
+            if not reward_components.get("ride_type_match", False):
+                ride_button = {
+                    "Ride": "ride_type_ride",
+                    "Reserve": "ride_type_reserve",
+                    "Premium": "ride_type_premium",
+                }.get(ride_type, "ride_type_ride")
+                action = click_action(ride_button)
+                if action is not None:
+                    return action
+            if not reward_components.get("destination_match", False):
+                action = input_action("drop_input", ride_drop)
+                if action is not None:
+                    return action
+            if not reward_components.get("destination_match", False):
+                action = click_action("destination_search_button")
+                if action is not None:
+                    return action
+            if not reward_components.get("cab_type_match", False):
+                ride_button = {
+                    "Mini": "ride_option_mini",
+                    "Sedan": "ride_option_sedan",
+                    "Premium": "ride_option_premium",
+                }.get(selected_ride, "ride_option_mini")
+                action = click_action(ride_button)
+                if action is not None:
+                    return action
+            if not reward_components.get("payment_match", False):
+                payment_button = {
+                    "cash": "payment_cash",
+                    "card": "payment_card",
+                    "upi": "payment_upi",
+                }.get(payment.lower(), "payment_upi")
+                action = click_action(payment_button)
+                if action is not None:
+                    return action
+            if not reward_components.get("ride_terminal_state", False):
+                action = click_action("confirm_ride_button")
+                if action is not None:
+                    return action
+            if float(observation.get("final_reward", 0.0) or 0.0) >= 1.0:
+                return ApkAction(action="finish")
+            return ApkAction(action="wait", duration_ms=1000)
 
         query = str(expected.get("query") or "")
         name = str(expected.get("name") or "")

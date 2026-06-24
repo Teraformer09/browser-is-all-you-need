@@ -233,7 +233,7 @@ class AdbDevice:
         for _ in range(3):
             try:
                 result = self.adb("shell", "uiautomator", "dump", "/sdcard/window.xml", check=False, timeout_s=8)
-                if result.returncode not in {0, 137}:
+                if result.returncode not in {0, 137, 255}:
                     raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "uiautomator dump failed")
                 xml_text = self.adb("exec-out", "cat", "/sdcard/window.xml", timeout_s=8).stdout
                 if xml_text.strip():

@@ -1,0 +1,31 @@
+task_id: uber_clone_023
+benchmark_family: uber_clone
+task_type: ride_booking
+policy_hint: scripted
+tags:
+  - benchmark
+  - ride
+  - uber_clone
+app:
+  package: com.primeintellect.dummyrl
+  apk_path: dummy_android_app/build/out/dummy-rl-app.apk
+setup:
+  start_screen: ride
+  difficulty: medium
+goal: Open the app, select the Reserve ride type, search for "Tech Park", choose the Sedan cab, pay with UPI, and book the ride.
+max_steps: 12
+success:
+  type: registered_check
+  check: ride_booking_exact
+  threshold: 1.0
+reward:
+  mode: fractional
+parameters:
+  pickup: Current location
+  ride_type: Reserve
+  destination: Tech Park
+  selected_ride: Sedan
+  payment: upi
+  coupon: ""
+  cancel_after_assignment: false
+  seed: 3022

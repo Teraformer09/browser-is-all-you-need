@@ -117,12 +117,15 @@ def build_known_task(spec: EvalTaskSpec, *, attempt: int = 0) -> DummyApkFormSea
             safety=dict(spec.setup.get("safety") or {}),
         )
     if spec.task_type == "ride_booking":
+        ride_type = str(params.pop("ride_type", params.pop("selected_ride_type", "Ride")))
+        destination = str(params.pop("destination", params.pop("drop", "Noida City Centre")))
         return RideBookingTask(
             task_id=spec.task_id,
-            pickup=str(params.pop("pickup")),
-            drop=str(params.pop("drop")),
-            selected_ride=str(params.pop("selected_ride", "Mini")),
-            payment=str(params.pop("payment", "")),
+            pickup=str(params.pop("pickup", "Current location")),
+            ride_type=ride_type,
+            destination=destination,
+            selected_ride=str(params.pop("selected_ride", params.pop("cab_type", "Mini"))),
+            payment=str(params.pop("payment", "upi")),
             coupon=str(params.pop("coupon", "")),
             cancel_after_assignment=bool(params.pop("cancel_after_assignment", False)),
             package=spec.app.package,

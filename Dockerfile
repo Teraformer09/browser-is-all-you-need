@@ -50,7 +50,8 @@ RUN apt-get update && \
       libxfixes3 \
       libxkbcommon0 \
       libdrm2 \
-      libgbm1 && \
+      libgbm1 \
+      libqhull-dev && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools" /var/run/sshd /root/.ssh && \

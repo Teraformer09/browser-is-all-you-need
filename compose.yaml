@@ -19,8 +19,8 @@ services:
       ANDROID_WORLD_SYSTEM_IMAGE: system-images;android-33;google_apis;x86_64
       ADB_PATH: /opt/android-sdk/platform-tools/adb
       EMULATOR_BIN: /opt/android-sdk/emulator/emulator
-      ADB_SERIAL: ${ADB_SERIAL:-emulator-5556}
-      CONSOLE_PORT: ${CONSOLE_PORT:-5556}
+      ADB_SERIAL: ${ADB_SERIAL:-emulator-5554}
+      CONSOLE_PORT: ${CONSOLE_PORT:-5554}
       GRPC_PORT: ${GRPC_PORT:-8554}
       START_EMULATOR: ${START_EMULATOR:-1}
       STOP_EMULATOR_AFTER_RUN: ${STOP_EMULATOR_AFTER_RUN:-1}
@@ -35,8 +35,11 @@ services:
       - android-adk-avd:/workspace/.deps/android_avd
       - android-adk-cache:/root/.cache
     ports:
-      - "5554-5557:5554-5557"
-      - "8554:8554"
+      - "${HOST_CONSOLE_PORT:-25554}:5554"
+      - "${HOST_ADB_PORT:-25555}:5555"
+      - "${HOST_ANDROID_WORLD_CONSOLE_PORT:-25556}:5556"
+      - "${HOST_ANDROID_WORLD_ADB_PORT:-25557}:5557"
+      - "${HOST_GRPC_PORT:-28554}:8554"
 
 volumes:
   android-adk-avd:
