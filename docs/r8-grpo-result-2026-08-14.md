@@ -36,6 +36,31 @@ The run used eight H100s with TP4/PP1/EP8, LoRA rank 16, six rollouts,
 learning rate `5e-7`. Its run receipt records `ray_status=0`, wall time
 3,138 seconds, and peak memory 73,933 MiB.
 
+### Training hyperparameters
+
+| Hyperparameter | Job 22 value |
+| --- | ---: |
+| GPU topology | 8 x H100, TP4 / PP1 / EP8 / ETP1 |
+| LoRA rank / alpha | 16 / 32 |
+| Optimizer updates | 6 |
+| Epochs | 3 |
+| Training targets | 40 |
+| Prompts per rollout | 20 |
+| Samples per prompt | 8 |
+| Global batch size | 160 |
+| Learning rate | `5e-7` |
+| KL loss / coefficient | enabled / `0.02` |
+| Reference model | enabled |
+| Sampling temperature | `0.7` |
+| Maximum prompt length | 2,048 tokens |
+| Maximum response length | 16,384 tokens |
+| Packed sequence length | 34,816 tokens |
+| Maximum tokens per GPU | 18,432 |
+| Rollout shuffle | disabled |
+| Thinking mode | enabled |
+| Development targets / interval | 11 / every 6 updates |
+| Checkpoint save interval | every update |
+
 All optimizer steps 0 through 5 completed. At step 5:
 
 | Metric | Value |
