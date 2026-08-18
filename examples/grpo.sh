@@ -70,7 +70,11 @@ export MILES_EXPERTS_SHARED_OUTER_LORAS="${MILES_EXPERTS_SHARED_OUTER_LORAS:-1}"
 export MILES_LORA_BASE_CPU_BACKUP="${MILES_LORA_BASE_CPU_BACKUP:-1}"
 export MILES_NO_GRADIENT_ACCUMULATION_FUSION="${MILES_NO_GRADIENT_ACCUMULATION_FUSION:-1}"
 export MILES_SGLANG_LORA_USE_VIRTUAL_EXPERTS="${MILES_SGLANG_LORA_USE_VIRTUAL_EXPERTS:-1}"
-export MILES_APPLY_CHAT_TEMPLATE_KWARGS="${MILES_APPLY_CHAT_TEMPLATE_KWARGS:-{\"enable_thinking\": false}}"
+# The default must not contain a literal `}` inside ${:-}: when the variable is
+# already set, bash ends the expansion at the inner brace and appends the last
+# `}` to the value, producing invalid JSON ('{"enable_thinking": false}}').
+_default_chat_template_kwargs='{"enable_thinking": false}'
+export MILES_APPLY_CHAT_TEMPLATE_KWARGS="${MILES_APPLY_CHAT_TEMPLATE_KWARGS:-${_default_chat_template_kwargs}}"
 export MILES_TRAIN_MODULE="${MILES_TRAIN_MODULE:-glm47_posttraining.integrations.miles_train_with_glm47_bridge}"
 export GLM47_REGISTER_BRIDGE="${GLM47_REGISTER_BRIDGE:-1}"
 
@@ -96,9 +100,12 @@ if [ -n "${MILES_LORA_ADAPTER_PATH:-}" ] && [ "${MILES_AUTO_PREPARE_GRPO_ADAPTER
   TRAINER_ADAPTER_PATH="${MILES_LORA_ADAPTER_PATH}"
   HYBRID_ADAPTER_PATH="${MILES_GRPO_ADAPTER_DIR:-${MILES_RUN_ROOT}/adapter_hybrid}"
   export MILES_LORA_SOURCE_ADAPTER_PATH="${TRAINER_ADAPTER_PATH}"
+  # The staging count is the SOURCE adapter's shard count (EP8 warm starts have
+  # 8 per-rank files), which can differ from MILES_EXPECTED_NATIVE_SHARDS — the
+  # trained OUTPUT's shard count checked by the training receipt (TP4 -> 4).
   PREPARE_ARGS=(
     --include-native
-    --expected-native-shards "${MILES_EXPECTED_NATIVE_SHARDS:-${MILES_TENSOR_MODEL_PARALLEL_SIZE}}"
+    --expected-native-shards "${MILES_EXPECTED_SOURCE_NATIVE_SHARDS:-${MILES_EXPECTED_NATIVE_SHARDS:-${MILES_TENSOR_MODEL_PARALLEL_SIZE}}}"
   )
   if [ -n "${MILES_EXPECTED_SOURCE_ADAPTER_SHA256:-}" ]; then
     PREPARE_ARGS+=(--expected-source-sha256 "${MILES_EXPECTED_SOURCE_ADAPTER_SHA256}")

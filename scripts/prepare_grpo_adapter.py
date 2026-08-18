@@ -13,6 +13,8 @@ Usage:
 ``--include-training-state`` additionally includes same-stage optimizer state.
 """
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import json
@@ -60,12 +62,41 @@ def copy_native_state(
     dst: Path,
     *,
     include_training_state: bool = False,
-) -> tuple[list[Path], list[Path]]:
+) -> tuple[list[Path], list[Path], str, str]:
+    """Copy native shards, normalizing to Miles's rank-named format when possible.
+
+    The synth-v1 era saved per-rank shards as ``tp{t}_pp0_ep{e}.pt`` where the
+    ep index is the global rank (verified: tp == ep % tp_count on every file).
+    Mainline Miles resolves ``adapter_megatron_rank{r}.pt``, so those shards are
+    renamed to rank-named files — a pure rename, no weight surgery. tp-only and
+    already-rank-named sources are copied verbatim.
+    """
+
+    sources = sorted(src.glob("adapter_megatron_*.pt"))
+    source_layout = classify_native_layout(sources)
     native_files = []
-    for source in sorted(src.glob("adapter_megatron_tp*_pp*.pt")):
-        target = dst / source.name
-        shutil.copy2(source, target)
-        native_files.append(target)
+    if source_layout == "ep-sharded":
+        tp_count = len({
+            int(_EP_SHARDED_SHARD_RE.fullmatch(path.name).group(1)) for path in sources
+        })
+        for path in sources:
+            match = _EP_SHARDED_SHARD_RE.fullmatch(path.name)
+            tp_index, ep_index = int(match.group(1)), int(match.group(2))
+            if tp_index != ep_index % tp_count:
+                raise ValueError(
+                    f"{path.name} violates the ep-to-global-rank mapping "
+                    f"(tp{tp_index} != ep{ep_index} % {tp_count}); refusing to rename"
+                )
+            target = dst / f"adapter_megatron_rank{ep_index}.pt"
+            shutil.copy2(path, target)
+            native_files.append(target)
+        staged_layout = "rank-named"
+    else:
+        for source in sources:
+            target = dst / source.name
+            shutil.copy2(source, target)
+            native_files.append(target)
+        staged_layout = source_layout
 
     training_state_files = []
     if include_training_state:
@@ -73,18 +104,56 @@ def copy_native_state(
             target = dst / source.name
             shutil.copy2(source, target)
             training_state_files.append(target)
-    return native_files, training_state_files
+    return native_files, training_state_files, source_layout, staged_layout
 
 
-def validate_native_shards(paths: list[Path], expected_count: int | None) -> None:
+_TP_ONLY_SHARD_RE = re.compile(r"^adapter_megatron_tp(\d+)_pp0\.pt$")
+_EP_SHARDED_SHARD_RE = re.compile(r"^adapter_megatron_tp(\d+)_pp0_ep(\d+)\.pt$")
+_RANK_NAMED_SHARD_RE = re.compile(r"^adapter_megatron_rank(\d+)\.pt$")
+
+
+def classify_native_layout(paths: list[Path]) -> str:
+    """Identify shard naming; unknown names fail closed.
+
+    Three generations exist: legacy ``tp{t}_pp0.pt`` (invalid when EP > TP —
+    ranks sharing a tp load each other's experts), the synth-v1 era's per-rank
+    ``tp{t}_pp0_ep{e}.pt``, and mainline Miles's ``rank{r}.pt``. The r3 GRPO
+    run staged ep-sharded shards into a loader that knew neither of the newer
+    namings and silently trained from a fresh LoRA init; every shard set must
+    therefore match a known layout exactly.
+    """
+
+    names = sorted(path.name for path in paths)
+    tp_only = [_TP_ONLY_SHARD_RE.fullmatch(name) for name in names]
+    if all(tp_only):
+        ranks = sorted(int(match.group(1)) for match in tp_only)
+        if ranks != list(range(len(ranks))):
+            raise ValueError(f"tp-only native shard set has rank gaps: {names}")
+        return "tp-only"
+    ep_sharded = [_EP_SHARDED_SHARD_RE.fullmatch(name) for name in names]
+    if all(ep_sharded):
+        ranks = sorted(int(match.group(2)) for match in ep_sharded)
+        if ranks != list(range(len(ranks))):
+            raise ValueError(f"ep-sharded native shard set has rank gaps or duplicates: {names}")
+        return "ep-sharded"
+    rank_named = [_RANK_NAMED_SHARD_RE.fullmatch(name) for name in names]
+    if all(rank_named):
+        ranks = sorted(int(match.group(1)) for match in rank_named)
+        if ranks != list(range(len(ranks))):
+            raise ValueError(f"rank-named native shard set has rank gaps: {names}")
+        return "rank-named"
+    raise ValueError(f"unrecognized native shard naming: {names}")
+
+
+def validate_native_shards(paths: list[Path], expected_count: int | None) -> str:
     if not paths:
         raise ValueError("--include-native requires Megatron-native adapter shards")
-    if expected_count is None:
-        return
-    names = {path.name for path in paths}
-    expected = {f"adapter_megatron_tp{index}_pp0.pt" for index in range(expected_count)}
-    if names != expected:
-        raise ValueError(f"native shard set mismatch: {sorted(names)} != {sorted(expected)}")
+    layout = classify_native_layout(paths)
+    if expected_count is not None and len(paths) != expected_count:
+        raise ValueError(
+            f"native shard count mismatch: {len(paths)} files != expected {expected_count}"
+        )
+    return layout
 
 
 def _sha256(path: Path) -> str:
@@ -148,11 +217,14 @@ def main(argv: list[str] | None = None) -> None:
         output_model = staging / "adapter_model.bin"
         torch.save(kept, output_model)
         shutil.copy2(source_config, staging / "adapter_config.json")
+        native_layout = native_source_layout = None
         if args.include_native:
-            native_files, training_state_files = copy_native_state(
-                src,
-                staging,
-                include_training_state=args.include_training_state,
+            native_files, training_state_files, native_source_layout, native_layout = (
+                copy_native_state(
+                    src,
+                    staging,
+                    include_training_state=args.include_training_state,
+                )
             )
             validate_native_shards(native_files, args.expected_native_shards)
         else:
@@ -160,6 +232,8 @@ def main(argv: list[str] | None = None) -> None:
 
         manifest = {
             "source": str(src),
+            "native_layout": native_layout,
+            "native_source_layout": native_source_layout,
             "num_layers": args.num_layers,
             "source_tensor_count": len(state_dict),
             "kept_tensor_count": len(kept),

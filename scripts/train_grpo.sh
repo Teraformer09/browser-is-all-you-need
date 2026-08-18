@@ -65,6 +65,9 @@ EVAL_N_SAMPLES_PER_PROMPT="${MILES_EVAL_N_SAMPLES_PER_PROMPT:-1}"
 EVAL_MAX_RESPONSE_LEN="${MILES_EVAL_MAX_RESPONSE_LEN:-1536}"
 EVAL_PROMPT_DATA="${MILES_EVAL_PROMPT_DATA:-}"
 KL_LOSS_COEF="${MILES_KL_LOSS_COEF:-0.00}"
+LR="${MILES_LR:-1e-5}"
+LR_DECAY_STYLE="${MILES_LR_DECAY_STYLE:-constant}"
+LR_WARMUP_FRACTION="${MILES_LR_WARMUP_FRACTION:-}"
 
 LORA_RANK="${MILES_LORA_RANK:-16}"
 LORA_ALPHA="${MILES_LORA_ALPHA:-32}"
@@ -124,6 +127,9 @@ echo "save_dir=${SAVE_DIR}"
 echo "seq_length=${SEQ_LENGTH}"
 echo "rollout_max_response_len=${ROLLOUT_MAX_RESPONSE_LEN}"
 echo "eval_max_response_len=${EVAL_MAX_RESPONSE_LEN}"
+echo "lr=${LR}"
+echo "lr_decay_style=${LR_DECAY_STYLE}"
+echo "lr_warmup_fraction=${LR_WARMUP_FRACTION}"
 
 if [ ! -d "${MILES_ROOT}" ]; then
   echo "Missing Miles root: ${MILES_ROOT}" >&2
@@ -233,6 +239,9 @@ monitor_vram() {
 monitor_vram &
 VRAM_MONITOR_PID=$!
 cleanup() {
+  if declare -F cleanup_ray_session >/dev/null 2>&1; then
+    cleanup_ray_session
+  fi
   if [ -n "${VRAM_MONITOR_PID:-}" ]; then
     kill "${VRAM_MONITOR_PID}" >/dev/null 2>&1 || true
     wait "${VRAM_MONITOR_PID}" >/dev/null 2>&1 || true
@@ -271,6 +280,8 @@ tasks_dir=${TASKS_DIR}
 data_build_module=${DATA_BUILD_MODULE}
 data_curriculum=${DATA_CURRICULUM}
 rollout_only=${ROLLOUT_ONLY}
+post_update_eval=${POST_UPDATE_EVAL:-unknown}
+post_update_eval_max_id=${POST_UPDATE_EVAL_MAX_ID:-}
 custom_rm_path=${CUSTOM_RM_PATH}
 expected_dataset_kind=${EXPECTED_DATASET_KIND}
 data_manifest_sha256=$(sha256sum "${DATA_DIR}/manifest.json" | awk '{print $1}')
@@ -325,6 +336,9 @@ wandb_job_type=${WANDB_JOB_TYPE}
 experiment_id=${EXPERIMENT_ID}
 eval_name=${EVAL_NAME}
 kl_loss_coef=${KL_LOSS_COEF}
+lr=${LR}
+lr_decay_style=${LR_DECAY_STYLE}
+lr_warmup_fraction=${LR_WARMUP_FRACTION}
 timing_status=${GLM47_TIMING_STATUS:-unverified}
 training_gate=${TRAINING_GATE}
 training_gate_status=${TRAINING_GATE_STATUS:-not_requested}
@@ -365,10 +379,47 @@ finalize_wandb() {
     "${REPO_ROOT}/scripts/publish_results.py" "${finalize_args[@]}"
 }
 
+# Ray lifecycle MECHANISM only. Tenancy POLICY (private session dir, port
+# assignments, scoped cleanup, submit retries) is owned by the infra layer —
+# see infra/gcp/ — and injected via MILES_RAY_* variables. With nothing set,
+# behavior is the legacy machine-owner default: broadcast cleanup, stock Ray
+# ports. Session dirs are tagged with a hash of the run id because AF_UNIX
+# caps socket paths (which live under the temp dir) at 107 bytes.
+RAY_SESSION_TAG="$(printf %s "${RUN_ID}" | sha256sum | cut -c1-8)"
+RAY_SCOPED_CLEANUP="${MILES_RAY_SCOPED_CLEANUP:-0}"
+RAY_TMPDIR="${MILES_RAY_TMPDIR:-}"
+if [ "${RAY_SCOPED_CLEANUP}" = "1" ] && [ -z "${RAY_TMPDIR}" ]; then
+  RAY_TMPDIR="/tmp/ray-g47-${RAY_SESSION_TAG}"
+fi
+RAY_PORT="${MILES_RAY_PORT:-}"
+RAY_AGENT_LISTEN_PORT="${MILES_RAY_AGENT_LISTEN_PORT:-}"
+RAY_AGENT_GRPC_PORT="${MILES_RAY_AGENT_GRPC_PORT:-}"
+RAY_RUNTIME_ENV_AGENT_PORT="${MILES_RAY_RUNTIME_ENV_AGENT_PORT:-}"
+RAY_METRICS_EXPORT_PORT="${MILES_RAY_METRICS_EXPORT_PORT:-}"
+cleanup_ray_session() {
+  if [ "${RAY_SCOPED_CLEANUP}" = "1" ]; then
+    # A multi-stage launch reuses the infra-owned ports. Stop only this
+    # stage's private Ray before the next stage starts, and clear its
+    # persisted session metadata so retries cannot attach to stale Redis.
+    pkill -9 -f "ray-g47-${RAY_SESSION_TAG}" >/dev/null 2>&1 || true
+    if [ -n "${RAY_TMPDIR}" ]; then
+      rm -rf -- "${RAY_TMPDIR}"
+    fi
+  fi
+}
 pkill -9 sglang >/dev/null 2>&1 || true
-ray stop --force >/dev/null 2>&1 || true
-pkill -9 ray >/dev/null 2>&1 || true
-pkill -9 redis >/dev/null 2>&1 || true
+if [ "${RAY_SCOPED_CLEANUP}" = "1" ]; then
+  # Shared machine: only ever touch processes bound to this run's session.
+  cleanup_ray_session
+else
+  # Sole owner of the machine: legacy broadcast cleanup.
+  ray stop --force >/dev/null 2>&1 || true
+  pkill -9 ray >/dev/null 2>&1 || true
+  pkill -9 redis >/dev/null 2>&1 || true
+fi
+if [ -n "${RAY_TMPDIR}" ]; then
+  mkdir -p "${RAY_TMPDIR}"
+fi
 
 export PYTHONBUFFERED=16
 export MASTER_ADDR="${MILES_MASTER_ADDR:-${MASTER_ADDR:-127.0.0.1}}"
@@ -416,6 +467,27 @@ LORA_ARGS=(
 # SFT adapter): point at an iter_*/adapter dir with Megatron-native shards.
 LORA_ADAPTER_PATH="${MILES_LORA_ADAPTER_PATH:-}"
 if [ -n "${LORA_ADAPTER_PATH}" ]; then
+  # Three shard namings exist across Miles generations: legacy tp{t}_pp0.pt,
+  # the synth-v1 era's tp{t}_pp0_ep{e}.pt, and mainline rank{r}.pt. The r3 run
+  # staged ep-suffixed shards into a loader that knew neither newer naming and
+  # silently trained from a fresh LoRA init. The bridge now resolves all three
+  # per rank; refuse to launch only on names nothing is known to load.
+  "${PYTHON_BIN}" - "${LORA_ADAPTER_PATH}" <<'PY'
+import pathlib, re, sys
+
+adapter = pathlib.Path(sys.argv[1])
+names = sorted(p.name for p in adapter.glob("adapter_megatron_*.pt"))
+if not names:
+    sys.exit(f"warm-start adapter has no Megatron-native shards: {adapter}")
+known = re.compile(r"adapter_megatron_(rank\d+|tp\d+_pp0(_ep\d+)?)\.pt")
+bad = [n for n in names if not known.fullmatch(n)]
+if bad:
+    sys.exit(
+        f"warm-start adapter {adapter} contains native shards no known Miles "
+        f"loader or bridge shim resolves: {bad}. Refusing to launch a warm "
+        "start that would silently fall back to fresh init."
+    )
+PY
   LORA_ARGS+=(--lora-adapter-path "${LORA_ADAPTER_PATH}")
 fi
 if [ "${EXPERTS_SHARED_OUTER_LORAS}" = "1" ]; then
@@ -541,12 +613,15 @@ fi
 
 OPTIMIZER_ARGS=(
   --optimizer adam
-  --lr "${MILES_LR:-1e-5}"
-  --lr-decay-style constant
+  --lr "${LR}"
+  --lr-decay-style "${LR_DECAY_STYLE}"
   --weight-decay 0.1
   --adam-beta1 0.9
   --adam-beta2 0.98
 )
+if [ -n "${LR_WARMUP_FRACTION}" ]; then
+  OPTIMIZER_ARGS+=(--lr-warmup-fraction "${LR_WARMUP_FRACTION}")
+fi
 
 WANDB_ARGS=(
   --use-wandb
@@ -554,9 +629,14 @@ WANDB_ARGS=(
   --wandb-project "${WANDB_PROJECT}"
   --wandb-group "${WANDB_GROUP}"
   --wandb-run-id "${WANDB_RUN_ID}"
-  --log-passrate
-  --log-correct-samples
 )
+# Correct-sample logging reads actor log_probs, which --debug-rollout-only
+# never computes; in rollout-only mode the ray job dies with
+# KeyError: 'log_probs' after the rollout finishes (also present in the r3
+# gate log, masked there because the SSH flow ignored the ray exit status).
+if [ "${ROLLOUT_ONLY}" = "0" ]; then
+  WANDB_ARGS+=(--log-passrate --log-correct-samples)
+fi
 
 SGLANG_ARGS=(
   --rollout-num-gpus-per-engine "${GPUS_PER_NODE}"
@@ -609,65 +689,121 @@ if [ -n "${MILES_EXTRA_ARGS:-}" ]; then
   MISC_ARGS+=("${EXTRA_ARGS[@]}")
 fi
 
-ray start --head \
-  --node-ip-address "${RAY_NODE_IP_ADDRESS}" \
-  --num-gpus "${GPUS_PER_NODE}" \
-  --disable-usage-stats \
-  --dashboard-host="${RAY_DASHBOARD_HOST}" \
+RAY_START_ARGS=(
+  --head
+  --node-ip-address "${RAY_NODE_IP_ADDRESS}"
+  --num-gpus "${GPUS_PER_NODE}"
+  --disable-usage-stats
+  --dashboard-host="${RAY_DASHBOARD_HOST}"
   --dashboard-port="${RAY_DASHBOARD_PORT}"
+)
+[ -n "${RAY_TMPDIR}" ] && RAY_START_ARGS+=(--temp-dir "${RAY_TMPDIR}")
+[ -n "${RAY_PORT}" ] && RAY_START_ARGS+=(--port "${RAY_PORT}")
+[ -n "${RAY_AGENT_LISTEN_PORT}" ] && RAY_START_ARGS+=(--dashboard-agent-listen-port "${RAY_AGENT_LISTEN_PORT}")
+[ -n "${RAY_AGENT_GRPC_PORT}" ] && RAY_START_ARGS+=(--dashboard-agent-grpc-port "${RAY_AGENT_GRPC_PORT}")
+[ -n "${RAY_RUNTIME_ENV_AGENT_PORT}" ] && RAY_START_ARGS+=(--runtime-env-agent-port "${RAY_RUNTIME_ENV_AGENT_PORT}")
+[ -n "${RAY_METRICS_EXPORT_PORT}" ] && RAY_START_ARGS+=(--metrics-export-port "${RAY_METRICS_EXPORT_PORT}")
+ray start "${RAY_START_ARGS[@]}"
 
-RUNTIME_ENV_JSON="{
-  \"env_vars\": {
-    \"PYTHONPATH\": \"/root/Megatron-LM/:${REPO_ROOT}/src:${MILES_ROOT}\",
-    \"CUDA_DEVICE_MAX_CONNECTIONS\": \"${CUDA_DEVICE_MAX_CONNECTIONS}\",
-    \"NCCL_NVLS_ENABLE\": \"${HAS_NVLINK}\",
-    \"GLM47_DATA_DIR\": \"${DATA_DIR}\",
-    \"GLM47_CPP_SANDBOX_IMAGE\": \"${GLM47_CPP_SANDBOX_IMAGE}\",
-    \"GLM47_CPP_SANDBOX_BACKEND\": \"${GLM47_CPP_SANDBOX_BACKEND:-docker}\",
-    \"GLM47_CPP_SANDBOX_UNSHARE_NET\": \"${GLM47_CPP_SANDBOX_UNSHARE_NET:-1}\",
-    \"GLM47_ROUTER_READY_TIMEOUT_S\": \"${GLM47_ROUTER_READY_TIMEOUT_S:-}\",
-    \"GLM47_CPP_SANDBOX_CPU\": \"${GLM47_CPP_SANDBOX_CPU:-1}\",
-    \"GLM47_CPP_REWARD_WORKERS\": \"${GLM47_CPP_REWARD_WORKERS:-8}\",
-    \"NVSHMEM_DISABLE_NCCL\": \"${NVSHMEM_DISABLE_NCCL:-}\",
-    \"WANDB_RUN_ID\": \"${WANDB_RUN_ID}\",
-    \"WANDB_JOB_TYPE\": \"${WANDB_JOB_TYPE}\",
-    \"WANDB_MODE\": \"${WANDB_MODE:-online}\",
-    \"WANDB_RUN_GROUP\": \"${WANDB_RUN_GROUP:-${WANDB_GROUP}}\",
-    \"WANDB_TAGS\": \"${WANDB_TAGS:-}\",
-    \"GLM47_EXPERIMENT_ID\": \"${EXPERIMENT_ID}\",
-    \"GLM47_TIMING_STATUS\": \"${GLM47_TIMING_STATUS:-unverified}\",
-    \"GLM47_REGISTER_BRIDGE\": \"${GLM47_REGISTER_BRIDGE:-}\",
-    \"GLM47_DISABLE_SHARED_LORA_CKPT_PATCH\": \"${GLM47_DISABLE_SHARED_LORA_CKPT_PATCH:-}\",
-    \"GLM47_SYNC_METRICS_DIR\": \"${GLM47_SYNC_METRICS_DIR:-}\"
-  }
-}"
+RUNTIME_ENV_JSON="$("${PYTHON_BIN}" - <<PY
+import json
+import os
+
+env = {
+    "PYTHONPATH": "/root/Megatron-LM/:${REPO_ROOT}/src:${MILES_ROOT}",
+    "CUDA_DEVICE_MAX_CONNECTIONS": "${CUDA_DEVICE_MAX_CONNECTIONS}",
+    "NCCL_NVLS_ENABLE": "${HAS_NVLINK}",
+    "GLM47_DATA_DIR": "${DATA_DIR}",
+    "GLM47_CPP_SANDBOX_IMAGE": "${GLM47_CPP_SANDBOX_IMAGE}",
+    "GLM47_CPP_SANDBOX_BACKEND": "${GLM47_CPP_SANDBOX_BACKEND:-docker}",
+    "GLM47_CPP_SANDBOX_UNSHARE_NET": "${GLM47_CPP_SANDBOX_UNSHARE_NET:-1}",
+    "GLM47_ROUTER_READY_TIMEOUT_S": "${GLM47_ROUTER_READY_TIMEOUT_S:-}",
+    "GLM47_CPP_SANDBOX_CPU": "${GLM47_CPP_SANDBOX_CPU:-1}",
+    "GLM47_CPP_REWARD_WORKERS": "${GLM47_CPP_REWARD_WORKERS:-8}",
+    "NVSHMEM_DISABLE_NCCL": "${NVSHMEM_DISABLE_NCCL:-}",
+    "WANDB_RUN_ID": "${WANDB_RUN_ID}",
+    "WANDB_JOB_TYPE": "${WANDB_JOB_TYPE}",
+    "WANDB_MODE": "${WANDB_MODE:-online}",
+    "WANDB_RUN_GROUP": "${WANDB_RUN_GROUP:-${WANDB_GROUP}}",
+    "WANDB_TAGS": "${WANDB_TAGS:-}",
+    "GLM47_EXPERIMENT_ID": "${EXPERIMENT_ID}",
+    "GLM47_TIMING_STATUS": "${GLM47_TIMING_STATUS:-unverified}",
+    "GLM47_REGISTER_BRIDGE": "${GLM47_REGISTER_BRIDGE:-}",
+    "GLM47_DISABLE_SHARED_LORA_CKPT_PATCH": "${GLM47_DISABLE_SHARED_LORA_CKPT_PATCH:-}",
+    "GLM47_SYNC_METRICS_DIR": "${GLM47_SYNC_METRICS_DIR:-}",
+}
+for key in ("WANDB_API_KEY", "WANDB_ENTITY", "WANDB_BASE_URL"):
+    if key in os.environ:
+        env[key] = os.environ[key]
+print(json.dumps({"env_vars": env}))
+PY
+)"
 
 set +e
 TRAIN_ENTRYPOINT=(python3 train.py)
 if [ -n "${TRAIN_MODULE}" ]; then
   TRAIN_ENTRYPOINT=(python3 -m "${TRAIN_MODULE}")
 fi
-ray job submit --address="http://${RAY_DASHBOARD_HOST}:${RAY_DASHBOARD_PORT}" \
-  --runtime-env-json="${RUNTIME_ENV_JSON}" \
-  -- "${TRAIN_ENTRYPOINT[@]}" \
-  --actor-num-nodes 1 \
-  --actor-num-gpus-per-node "${GPUS_PER_NODE}" \
-  --colocate \
-  "${MODEL_ARGS[@]}" \
-  "${CKPT_ARGS[@]}" \
-  "${ROLLOUT_ARGS[@]}" \
-  "${OPTIMIZER_ARGS[@]}" \
-  "${GRPO_ARGS[@]}" \
-  "${WANDB_ARGS[@]}" \
-  "${PERF_ARGS[@]}" \
-  "${EVAL_ARGS[@]}" \
-  "${SGLANG_ARGS[@]}" \
-  "${MISC_ARGS[@]}" \
-  "${LORA_ARGS[@]}"
-RAY_STATUS=$?
+# The dashboard's job agent registers asynchronously after `ray start`
+# returns, and a submit racing it fails with "No available agent to submit
+# job" (HTTP 500). The infra layer sets MILES_RAY_SUBMIT_RETRIES to tolerate
+# that race; only fast failures retry, so a genuine training error is never
+# rerun. Legacy default is a single attempt.
+RAY_STATUS=1
+for submit_attempt in $(seq 1 "${MILES_RAY_SUBMIT_RETRIES:-1}"); do
+  SUBMIT_STARTED_AT=${SECONDS}
+  ray job submit --address="http://${RAY_DASHBOARD_HOST}:${RAY_DASHBOARD_PORT}" \
+    --runtime-env-json="${RUNTIME_ENV_JSON}" \
+    -- "${TRAIN_ENTRYPOINT[@]}" \
+    --actor-num-nodes 1 \
+    --actor-num-gpus-per-node "${GPUS_PER_NODE}" \
+    --colocate \
+    "${MODEL_ARGS[@]}" \
+    "${CKPT_ARGS[@]}" \
+    "${ROLLOUT_ARGS[@]}" \
+    "${OPTIMIZER_ARGS[@]}" \
+    "${GRPO_ARGS[@]}" \
+    "${WANDB_ARGS[@]}" \
+    "${PERF_ARGS[@]}" \
+    "${EVAL_ARGS[@]}" \
+    "${SGLANG_ARGS[@]}" \
+    "${MISC_ARGS[@]}" \
+    "${LORA_ARGS[@]}"
+  RAY_STATUS=$?
+  if [ "${RAY_STATUS}" -eq 0 ] || [ $((SECONDS - SUBMIT_STARTED_AT)) -ge 60 ]; then
+    break
+  fi
+  echo "ray job submit failed within 60s (attempt ${submit_attempt}); waiting for the dashboard job agent" >&2
+  sleep 10
+done
 set -e
 
 cleanup
+
+# An eval dump at rollout id k reflects the policy after k optimizer updates,
+# so the trained final state is only ever measured by an eval with id >=
+# NUM_ROLLOUT. Issue #110 r3 shipped eval_0 (the frozen pre-update policy) as
+# "post-update validation"; record the truth in the receipt so that mislabel
+# cannot recur, and let launch profiles hard-require the post-update eval.
+POST_UPDATE_EVAL="absent"
+POST_UPDATE_EVAL_MAX_ID=""
+ROLLOUT_DUMP_DIR="$(dirname -- "${ROLLOUT_DUMP_TEMPLATE}")"
+if [ -d "${ROLLOUT_DUMP_DIR}" ]; then
+  POST_UPDATE_EVAL_MAX_ID="$(find "${ROLLOUT_DUMP_DIR}" -maxdepth 1 -name 'grpo_eval_*.pt' 2>/dev/null \
+    | sed -E 's/.*grpo_eval_([0-9]+)\.pt$/\1/' | sort -n | tail -n 1)"
+  if [ -n "${POST_UPDATE_EVAL_MAX_ID}" ] && [ "${POST_UPDATE_EVAL_MAX_ID}" -ge "${NUM_ROLLOUT}" ]; then
+    POST_UPDATE_EVAL="present"
+  fi
+fi
+EVAL_REQUIREMENT_STATUS=0
+if [ "${MILES_REQUIRE_POST_UPDATE_EVAL:-0}" = "1" ] \
+  && [ "${ROLLOUT_ONLY}" = "0" ] \
+  && [ "${RAY_STATUS}" -eq 0 ] \
+  && [ "${POST_UPDATE_EVAL}" != "present" ]; then
+  echo "MILES_REQUIRE_POST_UPDATE_EVAL=1 but no eval dump with rollout id >= ${NUM_ROLLOUT} exists in ${ROLLOUT_DUMP_DIR}; the trained policy was never evaluated" >&2
+  EVAL_REQUIREMENT_STATUS=1
+fi
+
 TRAINING_GATE_STATUS="not_requested"
 GATE_STATUS=0
 if [ "${RAY_STATUS}" -eq 0 ] && [ "${ROLLOUT_ONLY}" = "1" ]; then
@@ -689,6 +825,7 @@ elif [ "${RAY_STATUS}" -eq 0 ] && [ "${EXPECTED_DATASET_KIND}" = "aider-polyglot
     --num-rollout "${NUM_ROLLOUT}" \
     --gpus-per-node "${GPUS_PER_NODE}" \
     --expected-native-shards "${MILES_EXPECTED_NATIVE_SHARDS:-${TP_SIZE}}" \
+    --expected-source-native-shards "${MILES_EXPECTED_SOURCE_NATIVE_SHARDS:-${MILES_EXPECTED_NATIVE_SHARDS:-${TP_SIZE}}}" \
     --expected-train-count "${MILES_EXPECTED_TRAIN_COUNT:-253}" \
     --output "${TRAINING_GATE}"
   GATE_STATUS=$?
@@ -697,7 +834,7 @@ elif [ "${RAY_STATUS}" -eq 0 ] && [ "${EXPECTED_DATASET_KIND}" = "aider-polyglot
     TRAINING_GATE_STATUS="passed"
   fi
 fi
-if [ "${RAY_STATUS}" -eq 0 ] && [ "${GATE_STATUS}" -eq 0 ]; then
+if [ "${RAY_STATUS}" -eq 0 ] && [ "${GATE_STATUS}" -eq 0 ] && [ "${EVAL_REQUIREMENT_STATUS}" -eq 0 ]; then
   STAGE_STATUS="success"
 else
   STAGE_STATUS="failed"
@@ -712,5 +849,8 @@ if [ "${RAY_STATUS}" -ne 0 ]; then
 fi
 if [ "${GATE_STATUS}" -ne 0 ]; then
   exit "${GATE_STATUS}"
+fi
+if [ "${EVAL_REQUIREMENT_STATUS}" -ne 0 ]; then
+  exit "${EVAL_REQUIREMENT_STATUS}"
 fi
 exit "${FINALIZE_STATUS}"

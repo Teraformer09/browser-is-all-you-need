@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -39,6 +40,7 @@ def main() -> int:
         record
         for record in records
         if str(record.get("task_id", "")).startswith("aider-shadow-cpp/bank-account-")
+        and record.get("split") == "train"
     ]
     if not bank_records:
         raise SystemExit("rollout dumps contain no bank-account reward records")
@@ -59,7 +61,11 @@ def main() -> int:
             "--out",
             str(gate_path),
             "--expected-groups",
-            "40",
+            os.environ.get("GLM47_GATE_EXPECTED_GROUPS", "40"),
+            "--expected-samples",
+            os.environ.get("GLM47_GATE_EXPECTED_SAMPLES", "8"),
+            "--minimum-mixed-fraction",
+            os.environ.get("GLM47_GATE_MINIMUM_MIXED_FRACTION", "0.30"),
         ],
         check=True,
     )

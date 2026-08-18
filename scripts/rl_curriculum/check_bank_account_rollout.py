@@ -15,6 +15,18 @@ EXPECTED_SAMPLES = 8
 EXPECTED_GROUPS = 40
 MINIMUM_MIXED_FRACTION = 0.30
 HIGH_LOAD_RATE_DELTA = 0.10
+# Mirrors THREAD_EXHAUSTION_MARKERS in glm47_posttraining.aider_polyglot.harness;
+# this script stays stdlib-only so it can audit pulled JSONLs anywhere.
+THREAD_EXHAUSTION_MARKERS = (
+    "resource temporarily unavailable",
+    "thread constructor failed",
+    "pthread_create failed",
+)
+
+
+def _is_thread_exhaustion(text: str) -> bool:
+    lowered = text.lower()
+    return any(marker in lowered for marker in THREAD_EXHAUSTION_MARKERS)
 
 
 def _reward_record(row: dict[str, Any]) -> dict[str, Any]:
@@ -46,7 +58,11 @@ def _load_rows(path: Path) -> list[dict[str, Any]]:
 
 
 def evaluate_gate(
-    rows: list[dict[str, Any]], *, expected_groups: int = EXPECTED_GROUPS
+    rows: list[dict[str, Any]],
+    *,
+    expected_groups: int = EXPECTED_GROUPS,
+    expected_samples: int = EXPECTED_SAMPLES,
+    minimum_mixed_fraction: float = MINIMUM_MIXED_FRACTION,
 ) -> dict[str, Any]:
     bank_rows = [
         row
@@ -63,7 +79,7 @@ def evaluate_gate(
         groups[str(row.get("task_id"))].append(row)
 
     malformed_groups = {
-        task_id: len(group) for task_id, group in groups.items() if len(group) != EXPECTED_SAMPLES
+        task_id: len(group) for task_id, group in groups.items() if len(group) != expected_samples
     }
     mixed_groups = 0
     all_pass_groups = 0
@@ -84,17 +100,29 @@ def evaluate_gate(
         if not isinstance(load, int) or load < 1:
             raise ValueError("reward_worker_load is missing from a reward record")
         text = _log_text(row)
-        concurrency_failure = "FAILED: concurrent_transactions" in text
+        # A concurrency failure is either the named assertion or a pthread
+        # EAGAIN abort, which kills the grader before any FAILED line can
+        # print (issue #110 r3: the assertion-only grep saw 0 of 121 deaths).
+        concurrency_failure = (
+            "FAILED: concurrent_transactions" in text or _is_thread_exhaustion(text)
+        )
         concurrency_rows.append((load, concurrency_failure))
 
     loads = [load for load, _ in concurrency_rows]
     load_threshold = statistics.median(loads)
-    low = [failed for load, failed in concurrency_rows if load <= load_threshold]
-    high = [failed for load, failed in concurrency_rows if load > load_threshold]
+    # Bucket with >= / < so a modal maximum load cannot empty the high bucket
+    # (r3: median 32 was also the max, leaving 0 high-load records and making
+    # the correlation check vacuous). The check is computable only when both
+    # buckets are populated; all-equal loads are surfaced, not silently passed.
+    low = [failed for load, failed in concurrency_rows if load < load_threshold]
+    high = [failed for load, failed in concurrency_rows if load >= load_threshold]
+    load_check_computable = bool(low) and bool(high)
     low_rate = sum(low) / len(low) if low else 0.0
     high_rate = sum(high) / len(high) if high else 0.0
     load_correlated = (
-        sum(high) >= 2 and bool(low) and high_rate >= low_rate + HIGH_LOAD_RATE_DELTA
+        load_check_computable
+        and sum(high) >= 2
+        and high_rate >= low_rate + HIGH_LOAD_RATE_DELTA
     )
 
     reasons: list[str] = []
@@ -108,8 +136,8 @@ def evaluate_gate(
         reasons.append("all-prompt-groups-pass")
     elif groups and all_fail_groups == len(groups):
         reasons.append("all-prompt-groups-fail")
-    elif mixed_fraction < MINIMUM_MIXED_FRACTION:
-        reasons.append("mixed-prompt-group-fraction-below-0.30")
+    elif mixed_fraction < minimum_mixed_fraction:
+        reasons.append("mixed-prompt-group-fraction-below-minimum")
     if load_correlated:
         reasons.append("concurrency-failures-correlate-with-worker-load")
 
@@ -123,7 +151,7 @@ def evaluate_gate(
         action = "stop-environment-too-easy"
     elif groups and all_fail_groups == len(groups):
         action = "use-atomic-repair-tier-only"
-    elif mixed_fraction < MINIMUM_MIXED_FRACTION:
+    elif mixed_fraction < minimum_mixed_fraction:
         action = "stop-insufficient-correctness-variance"
     else:
         action = "continue-to-bounded-training"
@@ -139,10 +167,11 @@ def evaluate_gate(
         "infrastructure_invalid_records": len(infrastructure),
         "prompt_groups": len(groups),
         "expected_prompt_groups": expected_groups,
+        "expected_samples_per_group": expected_samples,
         "malformed_groups": malformed_groups,
         "mixed_groups": mixed_groups,
         "mixed_prompt_group_fraction": mixed_fraction,
-        "minimum_mixed_prompt_group_fraction": MINIMUM_MIXED_FRACTION,
+        "minimum_mixed_prompt_group_fraction": minimum_mixed_fraction,
         "all_pass_groups": all_pass_groups,
         "all_fail_groups": all_fail_groups,
         "concurrency_load_check": {
@@ -152,9 +181,12 @@ def evaluate_gate(
             "low_load_failure_rate": low_rate,
             "high_load_records": len(high),
             "high_load_failure_rate": high_rate,
+            "computable": load_check_computable,
             "correlated": load_correlated,
             "correlation_rule": (
-                "at least two high-load failures and high-load rate exceeds "
+                "failure is the named concurrency assertion or a thread-exhaustion "
+                "abort; buckets split at load >= median vs < median; requires at "
+                "least two high-load failures and high-load rate exceeding "
                 "low-load rate by at least 0.10"
             ),
         },
@@ -166,10 +198,23 @@ def main() -> int:
     parser.add_argument("rewards", type=Path)
     parser.add_argument("--out", type=Path)
     parser.add_argument("--expected-groups", type=int, default=EXPECTED_GROUPS)
+    parser.add_argument("--expected-samples", type=int, default=EXPECTED_SAMPLES)
+    parser.add_argument(
+        "--minimum-mixed-fraction", type=float, default=MINIMUM_MIXED_FRACTION
+    )
     args = parser.parse_args()
     if args.expected_groups < 1:
         raise SystemExit("--expected-groups must be positive")
-    result = evaluate_gate(_load_rows(args.rewards), expected_groups=args.expected_groups)
+    if args.expected_samples < 1:
+        raise SystemExit("--expected-samples must be positive")
+    if not 0.0 < args.minimum_mixed_fraction <= 1.0:
+        raise SystemExit("--minimum-mixed-fraction must be within (0, 1]")
+    result = evaluate_gate(
+        _load_rows(args.rewards),
+        expected_groups=args.expected_groups,
+        expected_samples=args.expected_samples,
+        minimum_mixed_fraction=args.minimum_mixed_fraction,
+    )
     payload = json.dumps(result, indent=2, sort_keys=True) + "\n"
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)

@@ -306,9 +306,11 @@ def _apply_warm_start_optimizer_reload(module) -> None:
         return
 
     def load_lora_adapter(model, adapter_path, *, optimizer=None, opt_param_scheduler=None):
+        resolved = _stage_rank_adapter_dir(module, adapter_path) or adapter_path
         loaded, iteration = original_load(
-            model, adapter_path, optimizer=optimizer, opt_param_scheduler=opt_param_scheduler
+            model, resolved, optimizer=optimizer, opt_param_scheduler=opt_param_scheduler
         )
+        _assert_warm_start_took(model, adapter_path, loaded)
         if loaded and optimizer is not None and hasattr(optimizer, "reload_model_params"):
             optimizer.reload_model_params()
             print(
@@ -320,6 +322,118 @@ def _apply_warm_start_optimizer_reload(module) -> None:
 
     module.load_lora_adapter = load_lora_adapter
     module._glm47_opt_reload_patched = True
+
+
+def _stage_rank_adapter_dir(module, adapter_path) -> str | None:
+    """Give every Miles generation a shard it can resolve for this rank.
+
+    Adapter shard names changed across Miles versions — legacy
+    ``tp{t}_pp{p}.pt``, the synth-v1 era's ``tp{t}_pp{p}_ep{e}.pt`` (ep index
+    == global rank), and mainline ``rank{r}.pt`` — while the loader in any
+    given image resolves only its own generation and falls back to fresh init
+    without error. This stages a per-rank directory that links this rank's
+    shard under both the rank-named and legacy names, so whichever resolution
+    the in-image loader uses finds the correct per-rank weights. Returns None
+    when nothing needs staging (legacy tp-only source, or no shards), leaving
+    the original path and the fresh-init gate as the backstop.
+    """
+
+    import re
+    import tempfile
+    from pathlib import Path
+
+    adapter_dir = Path(adapter_path).resolve()
+    if not adapter_dir.is_dir():
+        return None
+    try:
+        dist = module.dist
+        global_rank = dist.get_rank() if dist.is_initialized() else 0
+        parallel_state = module.get_parallel_state()
+        tp_rank = parallel_state.tp.rank
+        pp_rank = parallel_state.pp.rank
+    except Exception as error:  # introspection failed: let the loader try as-is
+        print(f"GLM-4.7 warm start shim: rank introspection unavailable ({error})", flush=True)
+        return None
+
+    shard = adapter_dir / f"adapter_megatron_rank{global_rank}.pt"
+    if not shard.exists():
+        shard = None
+        pattern = re.compile(r"^adapter_megatron_tp(\d+)_pp(\d+)_ep(\d+)\.pt$")
+        for candidate in sorted(adapter_dir.glob("adapter_megatron_tp*_pp*_ep*.pt")):
+            match = pattern.fullmatch(candidate.name)
+            if match and int(match.group(3)) == global_rank:
+                if int(match.group(1)) != tp_rank or int(match.group(2)) != pp_rank:
+                    raise RuntimeError(
+                        f"{candidate.name} belongs to global rank {global_rank} but this "
+                        f"rank is tp{tp_rank}/pp{pp_rank}; adapter layout does not match "
+                        "the run's parallel configuration"
+                    )
+                shard = candidate
+                break
+    if shard is None:
+        return None
+
+    staged = Path(tempfile.mkdtemp(prefix=f"glm47_warmstart_rank{global_rank}_"))
+    for item in adapter_dir.iterdir():
+        if item.name.startswith("adapter_megatron_"):
+            continue
+        (staged / item.name).symlink_to(item)
+    (staged / f"adapter_megatron_rank{global_rank}.pt").symlink_to(shard)
+    (staged / f"adapter_megatron_tp{tp_rank}_pp{pp_rank}.pt").symlink_to(shard)
+    print(
+        f"GLM-4.7 warm start shim: rank {global_rank} (tp{tp_rank}/pp{pp_rank}) resolves "
+        f"{shard.name} via {staged}",
+        flush=True,
+    )
+    return str(staged)
+
+
+def _assert_warm_start_took(model, adapter_path, loaded) -> None:
+    """Fail closed when a requested warm start leaves the actor at fresh init.
+
+    The r3 bank-account run staged an adapter whose native shards used a
+    naming the loader did not resolve; nothing loaded, nothing failed, and one
+    optimizer update was applied to a fresh LoRA. A fresh LoRA is detectable:
+    its B ("linear_out") matrices are all exactly at their zero init, so the
+    adapter contributes nothing to the network. Any warm start that requests
+    an adapter and ends in that state is an error, not a fallback. Opt out for
+    deliberate cold starts with GLM47_ALLOW_COLD_LORA_START=1.
+    """
+
+    if not adapter_path:
+        return
+    if os.environ.get("GLM47_ALLOW_COLD_LORA_START", "").strip().lower() in {"1", "true", "yes", "on"}:
+        return
+    if not loaded:
+        raise RuntimeError(
+            f"warm start requested from {adapter_path} but the loader reported nothing "
+            "loaded; refusing to train from a fresh LoRA init "
+            "(set GLM47_ALLOW_COLD_LORA_START=1 for a deliberate cold start)"
+        )
+    chunks = model if isinstance(model, (list, tuple)) else [model]
+    in_count = out_count = 0
+    in_norm = out_norm = 0.0
+    for chunk in chunks:
+        for name, param in chunk.named_parameters():
+            if "adapter.linear_in" in name:
+                in_count += 1
+                in_norm += float(param.detach().float().norm())
+            elif "adapter.linear_out" in name:
+                out_count += 1
+                out_norm += float(param.detach().float().norm())
+    print(
+        "GLM-4.7 warm start receipt: "
+        f'{{"adapter_path": "{adapter_path}", "linear_in_tensors": {in_count}, '
+        f'"linear_out_tensors": {out_count}, "linear_in_norm_sum": {in_norm:.6f}, '
+        f'"linear_out_norm_sum": {out_norm:.6f}}}',
+        flush=True,
+    )
+    if out_count and out_norm == 0.0:
+        raise RuntimeError(
+            f"warm start from {adapter_path} left every adapter linear_out (LoRA B) "
+            "tensor at zero init on this rank: the adapter file was not actually "
+            "restored and the policy is the base model. Refusing to train."
+        )
 
 
 def _patch_colocate_lora_tms_regions() -> None:
