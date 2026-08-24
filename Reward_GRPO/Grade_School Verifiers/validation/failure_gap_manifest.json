@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "task_id": "local-aider-cpp/grade-school",
+  "source_run_id": "execution-bank-RL-v2-think-r2/fixed26-mt2-4x-20260818",
+  "source_checkpoint": "execution-bank-RL-v2-think-r2/checkpoints/grpo_lora_r16/iter_0000019/adapter",
+  "source_archive": "gs://skypilot-filemounts-ubuntu-f0048940-88p8zkcq/execution-bank-RL-v2-think-r2/fixed26-mt2-4x-20260818",
+  "evaluation_controls": {
+    "aider_revision": "5dc9490bb35f9729ef2c95d00a19ccd30c26339c",
+    "model": "openai/glm-4.7-flash-grpo",
+    "edit_format": "whole",
+    "max_turns": 2,
+    "trial_count": 4,
+    "source_overlay_instructions_sha256": "f913000d110e10de2f182ee1470765fbca95d916a8cf2735b379fc05fbf58001"
+  },
+  "current_verifier_sha256": {
+    "E01": "c289ea175f1031ca502e7be69e10fa356d59942ee46e32ae0a6c525ea77d3210",
+    "E02": "47167739efe022e3a5cd26d13481d355e102a26f8e1abbc943d19f0fffc0e28b",
+    "E03": "bc6ca1740871079ed4d8f8ec01cd3b6c89320f1419e42773b241912643bfa0c8",
+    "E04": "688ec45bf2ad947866867f9091375f5a909c523249a1d74abb95b9ebd5e9942a",
+    "E05": "75251c2a8036c49c3c4e1ba4b0329aeffaad0a091efd89a33921864d4fb02a64",
+    "E06": "077051292f5ce36e47d5679c910cc8fdce136ae2a2dc387a67706732711e4160",
+    "E07": "fdd47db0dc72d4469ff461e4d176e2ec058bc67f920fa76955062fe16bc68b6c",
+    "E08": "c07a6211d4b7161e8348e64aaadd3347f338066ea332af340dbedac354f629ea",
+    "E09": "58d57bdc859fd70875e095c48625dd9d28775c8751060e405c90dc3842ab1c07",
+    "E10": "5646a5e2b147fd954030be2af09d97029fd7dda8e0b10da0b76ea149f17fdb17",
+    "shared_helper": "42215c0f16a687088f7c6bbbada2ad5297dd2c80adf84bc3f1a9265a78199fe7"
+  },
+  "static_replay_policies": ["E01", "E02", "E03", "E04", "E05", "E06", "E09"],
+  "non_static_policies": {
+    "E07": "requires an authenticated two-turn feedback bundle",
+    "E08": "requires an authenticated Aider response/tree/log bundle",
+    "E10": "requires Clang plus its pinned clean-reproduction environment"
+  },
+  "official": {
+    "policy_ids": ["E05", "E06"],
+    "test_sha256": "3a6f4266831b6d31b022e764bed44d1c02cfa10f7629f91053c02e0d53b29871",
+    "expected_test_cases": 8,
+    "verifier_contract_instructions_sha256": "8dc7133cd5f0564717108757c27ad96ebadf44f03b5fde5c35b826aaeb0b4e0f"
+  },
+  "source_evidence_sha256": {
+    "trial_1_chat": "d02fb041dec3649e556393298d34446867bba02dbd76f4769770c30c40815bf5",
+    "trial_1_results": "792303fc59d4c6bb73160700aaddaa86794d47331a733dd04b521b18904055f9",
+    "trial_2_chat": "a194697b52e1502b5927f6ec8046fa1c8e58fa3737fba455682bf75a6752c8b9",
+    "trial_2_results": "c360320d89c7bc29d2808133a911198c7e593673619c8c1b46e58fc367d6449a",
+    "trial_3_chat": "e2e247c9779b42b6d66ddff41382cbd4943806808277968c0d2990ef7db19271",
+    "trial_3_results": "c5f9d2f970dcf316d62f6b8f11f91d373e10f9dbbfd581a1c4b6fc2f361c5913",
+    "trial_4_chat": "1616b9986d5f1084af21e8c53ab01ab85efcdeac751d346e14f19b180b6fdbaf",
+    "trial_4_results": "014062482ec57009c923ce1b49202951c903ef5ac47054d68fc70bca997f6d44"
+  },
+  "observed_outcome": {
+    "pass_at_1": "2/4",
+    "pass_by_turn_2": "2/4",
+    "infrastructure_invalid": 0,
+    "context_exhausted_trials": 1
+  },
+  "cases": [
+    {
+      "case_id": "midband_rl_v2_trial_1_turn_1",
+      "source_sample_id": "trial-1/grade-school/turn-1",
+      "source_path": "cases/midband_rl_v2_trial_1_turn_1",
+      "candidate_sha256": {"grade_school.h": "2ecfb4bbf8afb94a75bc491a1d431ed3d0379322e9dccdd5e6288ef0033d0c7f", "grade_school.cpp": "fdbf732f8e4b3823651e84e87215ee3278a39ad129fb6f9603dbd229e8766b8f"},
+      "source_outcome": "pass",
+      "failure_class": "official-positive-alternate-valid-implementation",
+      "expected_classification": "agreement_pass"
+    },
+    {
+      "case_id": "midband_rl_v2_trial_2_turn_1",
+      "source_sample_id": "trial-2/grade-school/turn-1",
+      "source_path": "cases/midband_rl_v2_trial_2_turn_1",
+      "candidate_sha256": {"grade_school.h": "d108127575bd345812ee9c4a37b45aafefbcefbcc24315fb6b3c3776170f8aa8", "grade_school.cpp": "d0caec86dee2cc8b1888a249f4b5edf54672abfe88106e25208d355224e9d466"},
+      "source_outcome": "pass",
+      "failure_class": "official-positive-alternate-valid-implementation",
+      "expected_classification": "agreement_pass"
+    },
+    {
+      "case_id": "midband_rl_v2_trial_3_turn_1",
+      "source_sample_id": "trial-3/grade-school/turn-1-and-final",
+      "source_path": "cases/midband_rl_v2_trial_3_turn_1",
+      "candidate_sha256": {"grade_school.h": "d108127575bd345812ee9c4a37b45aafefbcefbcc24315fb6b3c3776170f8aa8", "grade_school.cpp": "ae63b47647e534f6f90928bcf38508bd3447e7672e00ff84b0fba40fcbdb4016"},
+      "source_outcome": "fail",
+      "failure_class": "undeclared-constructor-and-missing-stdexcept-then-context-exhaustion",
+      "expected_classification": "agreement_fail"
+    },
+    {
+      "case_id": "midband_rl_v2_trial_4_turn_1",
+      "source_sample_id": "trial-4/grade-school/turn-1",
+      "source_path": "cases/midband_rl_v2_trial_4_turn_1",
+      "candidate_sha256": {"grade_school.h": "77d02ff6d8c2513a0484729a73e40d27c553870d3a26c407f6bd94accdaac6a8", "grade_school.cpp": "6ae45cbc43dc418c336c73edc0e97adafa6a9ddaab906b58b242bc3914cf6466"},
+      "source_outcome": "fail",
+      "failure_class": "header-uses-std-set-without-owning-set-include",
+      "expected_classification": "agreement_fail"
+    },
+    {
+      "case_id": "midband_rl_v2_trial_4_final",
+      "source_sample_id": "trial-4/grade-school/turn-2",
+      "source_path": "cases/midband_rl_v2_trial_4_final",
+      "candidate_sha256": {"grade_school.h": "01931221a99a768ce3eeccc1f6908e2088932cf0007bc6224f725ced3723ade5", "grade_school.cpp": "6ae45cbc43dc418c336c73edc0e97adafa6a9ddaab906b58b242bc3914cf6466"},
+      "source_outcome": "fail",
+      "failure_class": "repaired-set-include-but-missing-stdexcept-for-invalid-argument",
+      "expected_classification": "agreement_fail"
+    }
+  ]
+}

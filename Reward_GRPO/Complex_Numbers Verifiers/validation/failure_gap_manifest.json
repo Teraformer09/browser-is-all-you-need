@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "task_id": "local-aider-cpp/complex-numbers",
+  "source_run_id": "execution-bank-RL-v2-think-r2/fixed26-mt2-4x-20260818",
+  "source_checkpoint": "execution-bank-RL-v2-think-r2/checkpoints/grpo_lora_r16/iter_0000019/adapter",
+  "source_archive": "gs://skypilot-filemounts-ubuntu-f0048940-88p8zkcq/execution-bank-RL-v2-think-r2/fixed26-mt2-4x-20260818",
+  "evaluation_controls": {
+    "aider_revision": "5dc9490bb35f9729ef2c95d00a19ccd30c26339c",
+    "model": "openai/glm-4.7-flash-grpo",
+    "edit_format": "whole",
+    "max_turns": 2,
+    "trial_count": 4
+  },
+  "current": {
+    "contract_sha256": "c2a73507eab5d4114ab36a971f7cad2e156d98a6b2fd034692ed0432641aad95",
+    "verifier_sha256": {
+      "E01": "d6af4c68ce90ba1fd883a369f032ed5ef511eda9a7bc9a65bbac38e1a9b16b2c",
+      "E02": "cfb850b1eed7fabfea11639487275b5e57d80d914917f01703e6c02dd173a9f8",
+      "E03": "bc145065c78f73c67920b0b1938f4ece33473a6da9ab82d14f20d59ae45abc80",
+      "E04": "78346aa473313c94deed546e739a4108b3e6841be33aba16029da67c73b15008",
+      "E05": "089514bfa3b0107fbb3ea505b33a5e669300e89eb583d4258cbd6dec779afc38"
+    }
+  },
+  "baseline_restriction": {
+    "policy_id": "E04",
+    "verifier_sha256": "36ced929e67f133f1b22aebc63f6cd7cdb249fbb57d854f7159a3c90396c5c36",
+    "receipt_sha256": "b0cb6505e448cd9a206ec6b97186d44a73bd7a4be4b14496c7c37e2cb492f612",
+    "official_positive_case": "midband_rl_v2_trial_4_final",
+    "unsupported_requirement": "exact stream text (1,-2)"
+  },
+  "official": {
+    "policy_id": "E03",
+    "test_sha256": "0bb911210fddcfe066825d5b562ca6efbf21d45386e62aebfd4693ad1b82897b"
+  },
+  "source_evidence_sha256": {
+    "trial_1_chat": "56cebc930c10e2df430f3503c35c7d1a00539258fb416771ceceb17db8182df4",
+    "trial_1_results": "75c0454af87150371d9542d49e6d3e69901fddee8edafea23e1171b2ed2dc8ce",
+    "trial_2_chat": "093db7ad9527ab88467ee377fa58591af09ab0bf37ea15f81eb04d441408d706",
+    "trial_2_results": "8244c70e50f0881a990948442a8a6a777b9fdfd7073cb8003f91b57fd797281e",
+    "trial_3_chat": "9668d57e2df784e80204693a4cafbe3484feb69cbc10efe093353c6709867b40",
+    "trial_3_results": "c33beeab897c629c91a982cb2af539faabe3c641d95f8641b83d739875780982",
+    "trial_4_chat": "5181a47968c0cf1b3b57743a81e93884c4119c13128566fa9cfd78be93c1f7eb",
+    "trial_4_results": "cdb6dc69031eea5eae5766f663641d894b4f6aabda570a6116b5abe04c8dc41a"
+  },
+  "observed_outcome": {
+    "pass_at_1": "0/4",
+    "pass_by_turn_2": "1/4",
+    "infrastructure_invalid": 0,
+    "context_exhausted_trials": 1
+  },
+  "cases": [
+    {
+      "case_id": "midband_rl_v2_trial_1_turn_1",
+      "source_sample_id": "trial-1/complex-numbers/turn-1",
+      "source_path": "cases/midband_rl_v2_trial_1_turn_1",
+      "candidate_sha256": {"complex_numbers.h": "c419ba8c35d080c0030f3a88db1cc0439cf2a79b3e74c4eb70c29988a2b8eef8", "complex_numbers.cpp": "e814bd30bd54f7cf54706b2558080aa5dffea550ad586e0c47c6b4f881c3e9e1"},
+      "source_outcome": "fail",
+      "failure_class": "stale-member-names-and-private-free-operator-access",
+      "expected_classification": "agreement_fail"
+    },
+    {
+      "case_id": "midband_rl_v2_trial_1_final",
+      "source_sample_id": "trial-1/complex-numbers/turn-2",
+      "source_path": "cases/midband_rl_v2_trial_1_final",
+      "candidate_sha256": {"complex_numbers.h": "d939324c09ae2174f5e92837b486c2aa6fc061554364c8f7eebac82b641cc933", "complex_numbers.cpp": "e814bd30bd54f7cf54706b2558080aa5dffea550ad586e0c47c6b4f881c3e9e1"},
+      "source_outcome": "fail",
+      "failure_class": "free-operator-private-access-without-friends",
+      "expected_classification": "agreement_fail"
+    },
+    {
+      "case_id": "midband_rl_v2_trial_2_turn_1",
+      "source_sample_id": "trial-2/complex-numbers/turn-1",
+      "source_path": "cases/midband_rl_v2_trial_2_turn_1",
+      "candidate_sha256": {"complex_numbers.h": "951e53ed200b8cb701c3ad2e8e6e8530ee4bd11f9258b56261e9195071a207ab", "complex_numbers.cpp": "d4753a6f6899bccbbc83c69bc8df367730b79cb10a01d710676048d61c925b76"},
+      "source_outcome": "fail",
+      "failure_class": "free-operator-private-access-without-friends",
+      "expected_classification": "agreement_fail"
+    },
+    {
+      "case_id": "midband_rl_v2_trial_2_final",
+      "source_sample_id": "trial-2/complex-numbers/turn-2",
+      "source_path": "cases/midband_rl_v2_trial_2_final",
+      "candidate_sha256": {"complex_numbers.h": "f215ad04128ac9d33e1d4c539fd7015b9ce2d9f213c5fcaa26b2d0d28efa2a54", "complex_numbers.cpp": "d4753a6f6899bccbbc83c69bc8df367730b79cb10a01d710676048d61c925b76"},
+      "source_outcome": "fail",
+      "failure_class": "scalar-free-operators-still-access-private-state",
+      "expected_classification": "agreement_fail"
+    },
+    {
+      "case_id": "midband_rl_v2_trial_3_turn_1",
+      "source_sample_id": "trial-3/complex-numbers/turn-1",
+      "source_path": "cases/midband_rl_v2_trial_3_turn_1",
+      "candidate_sha256": {"complex_numbers.h": "951e53ed200b8cb701c3ad2e8e6e8530ee4bd11f9258b56261e9195071a207ab", "complex_numbers.cpp": "01a5e58b78090724d37a88e679a92b1f9f87446f885719d9a579731b5bb96c0e"},
+      "source_outcome": "fail",
+      "failure_class": "free-operator-private-access-without-friends",
+      "expected_classification": "agreement_fail"
+    },
+    {
+      "case_id": "midband_rl_v2_trial_3_final",
+      "source_sample_id": "trial-3/complex-numbers/turn-2",
+      "source_path": "cases/midband_rl_v2_trial_3_final",
+      "candidate_sha256": {"complex_numbers.h": "7df1978663ffc7870bd1f082e1f56771af7e521f76798cc9a621c21d740fbc91", "complex_numbers.cpp": "01a5e58b78090724d37a88e679a92b1f9f87446f885719d9a579731b5bb96c0e"},
+      "source_outcome": "fail",
+      "failure_class": "header-implementation-private-member-name-drift",
+      "expected_classification": "agreement_fail"
+    },
+    {
+      "case_id": "midband_rl_v2_trial_4_turn_1",
+      "source_sample_id": "trial-4/complex-numbers/turn-1",
+      "source_path": "cases/midband_rl_v2_trial_4_turn_1",
+      "candidate_sha256": {"complex_numbers.h": "3562521f4b7fa5aac1bb97a60c0eb5ff18a6df3394f8797962a539c0ee34521f", "complex_numbers.cpp": "c0d1ed7a5bbb5cd4e70d0e2c796620563e930f795557fd2222704149f8c1b5de"},
+      "source_outcome": "fail",
+      "failure_class": "free-operator-private-access-without-friends",
+      "expected_classification": "agreement_fail"
+    },
+    {
+      "case_id": "midband_rl_v2_trial_4_final",
+      "source_sample_id": "trial-4/complex-numbers/turn-2",
+      "source_path": "cases/midband_rl_v2_trial_4_final",
+      "candidate_sha256": {"complex_numbers.h": "12e190cfe799450fe47188fc3c3fa69aa2d6c25999de984fc46799b331e7ddab", "complex_numbers.cpp": "c0d1ed7a5bbb5cd4e70d0e2c796620563e930f795557fd2222704149f8c1b5de"},
+      "source_outcome": "pass",
+      "failure_class": null,
+      "expected_classification": "agreement_pass"
+    }
+  ]
+}

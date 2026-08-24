@@ -1,0 +1,109 @@
+{
+  "applicable_kernel_count_by_policy": {
+    "E01": 3,
+    "E02": 3,
+    "E03": 3,
+    "E04": 3,
+    "E05": 3
+  },
+  "candidate_kernel_count": 15,
+  "policies": {
+    "E01": {
+      "nonempty": true,
+      "paired_verifier": "verifiers/verifier_01_exact_api_compile_link.py",
+      "path": "Verifier implementation policy/policy_01_exact_api_compile_link.md",
+      "sha256": "6e7752a81fa484f0aff07a9a3eb55cbdfdb7e8abe5865f01f06de13c1d445cfc"
+    },
+    "E02": {
+      "nonempty": true,
+      "paired_verifier": "verifiers/verifier_02_semantic_boundaries.py",
+      "path": "Verifier implementation policy/policy_02_semantic_boundaries.md",
+      "sha256": "42e3c24188afd91cde1f2e0dd23be5ee27aadfb8fc30b241b7bd0d3ae639d0f9"
+    },
+    "E03": {
+      "nonempty": true,
+      "paired_verifier": "verifiers/verifier_03_official_functional_behavior.py",
+      "path": "Verifier implementation policy/policy_03_official_functional_behavior.md",
+      "sha256": "023723678c3c44060683c520e153c97f0211f882c5a574bb9148553103dd8f2c"
+    },
+    "E04": {
+      "nonempty": true,
+      "paired_verifier": "verifiers/verifier_04_free_operator_contract.py",
+      "path": "Verifier implementation policy/policy_04_free_operator_contract.md",
+      "sha256": "8fa15557885f76f9c1579dc9964bba2cfedc0634febdaa42b05adb6f3d365300"
+    },
+    "E05": {
+      "nonempty": true,
+      "paired_verifier": "verifiers/verifier_05_numerical_identities.py",
+      "path": "Verifier implementation policy/policy_05_numerical_identities.md",
+      "sha256": "d3927d8a9681e710d5902e8b9afa5f428bc6ccd39f357c7c41d3133218077d0f"
+    }
+  },
+  "policy_count": 5,
+  "schema_version": 1,
+  "status": "PASS",
+  "task_id": "local-aider-cpp/complex-numbers",
+  "verifier_count": 5,
+  "verifiers": {
+    "E01": {
+      "ast_parse": "PASS",
+      "checks_function_count": 1,
+      "checks_function_present": true,
+      "declared_policy_id": "CX-E01",
+      "expected_kernel_count": 3,
+      "one_source_comment": true,
+      "path": "verifiers/verifier_01_exact_api_compile_link.py",
+      "policy_id_match": true,
+      "python_comment_count": 1,
+      "sha256": "d6af4c68ce90ba1fd883a369f032ed5ef511eda9a7bc9a65bbac38e1a9b16b2c"
+    },
+    "E02": {
+      "ast_parse": "PASS",
+      "checks_function_count": 1,
+      "checks_function_present": true,
+      "declared_policy_id": "CX-E02",
+      "expected_kernel_count": 3,
+      "one_source_comment": true,
+      "path": "verifiers/verifier_02_semantic_boundaries.py",
+      "policy_id_match": true,
+      "python_comment_count": 1,
+      "sha256": "cfb850b1eed7fabfea11639487275b5e57d80d914917f01703e6c02dd173a9f8"
+    },
+    "E03": {
+      "ast_parse": "PASS",
+      "checks_function_count": 1,
+      "checks_function_present": true,
+      "declared_policy_id": "CX-E03",
+      "expected_kernel_count": 3,
+      "one_source_comment": true,
+      "path": "verifiers/verifier_03_official_functional_behavior.py",
+      "policy_id_match": true,
+      "python_comment_count": 1,
+      "sha256": "bc145065c78f73c67920b0b1938f4ece33473a6da9ab82d14f20d59ae45abc80"
+    },
+    "E04": {
+      "ast_parse": "PASS",
+      "checks_function_count": 1,
+      "checks_function_present": true,
+      "declared_policy_id": "CX-E04",
+      "expected_kernel_count": 3,
+      "one_source_comment": true,
+      "path": "verifiers/verifier_04_free_operator_contract.py",
+      "policy_id_match": true,
+      "python_comment_count": 1,
+      "sha256": "78346aa473313c94deed546e739a4108b3e6841be33aba16029da67c73b15008"
+    },
+    "E05": {
+      "ast_parse": "PASS",
+      "checks_function_count": 1,
+      "checks_function_present": true,
+      "declared_policy_id": "CX-E05",
+      "expected_kernel_count": 3,
+      "one_source_comment": true,
+      "path": "verifiers/verifier_05_numerical_identities.py",
+      "policy_id_match": true,
+      "python_comment_count": 1,
+      "sha256": "089514bfa3b0107fbb3ea505b33a5e669300e89eb583d4258cbd6dec779afc38"
+    }
+  }
+}

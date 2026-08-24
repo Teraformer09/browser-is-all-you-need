@@ -1,0 +1,109 @@
+{
+  "applicable_kernel_count_by_policy": {
+    "E01": 3,
+    "E02": 3,
+    "E03": 3,
+    "E04": 3,
+    "E05": 3
+  },
+  "candidate_kernel_count": 15,
+  "policies": {
+    "E01": {
+      "nonempty": true,
+      "paired_verifier": "verifiers/verifier_01_exact_api_compile_link.py",
+      "path": "Verifier implementation policy/policy_01_exact_api_compile_link.md",
+      "sha256": "24bd8d3a50f8667cfcf9979016d7bbaeb540fcacd21f072dae156ddf6880bc26"
+    },
+    "E02": {
+      "nonempty": true,
+      "paired_verifier": "verifiers/verifier_02_semantic_boundaries.py",
+      "path": "Verifier implementation policy/policy_02_semantic_boundaries.md",
+      "sha256": "37e196cff18bf8985a392ebf5b5f88e8638f9e55c10e15cfe883c7e127151ab1"
+    },
+    "E03": {
+      "nonempty": true,
+      "paired_verifier": "verifiers/verifier_03_official_functional_behavior.py",
+      "path": "Verifier implementation policy/policy_03_official_functional_behavior.md",
+      "sha256": "88120f9f7f23aebe7e5b156c217a9ceb713489dfe4c300de3e9773370f382adf"
+    },
+    "E04": {
+      "nonempty": true,
+      "paired_verifier": "verifiers/verifier_04_canonical_time_arithmetic.py",
+      "path": "Verifier implementation policy/policy_04_canonical_time_arithmetic.md",
+      "sha256": "002429c5204226694db67a99d1fd51fddcee36d1e0cc87c3497990873943e344"
+    },
+    "E05": {
+      "nonempty": true,
+      "paired_verifier": "verifiers/verifier_05_factory_observer_odr.py",
+      "path": "Verifier implementation policy/policy_05_factory_observer_odr.md",
+      "sha256": "c41b174c6461e612f1e14aabb7dc1745bdb042efcb29d79d80a56db222c62a59"
+    }
+  },
+  "policy_count": 5,
+  "schema_version": 1,
+  "status": "PASS",
+  "task_id": "local-aider-cpp/clock",
+  "verifier_count": 5,
+  "verifiers": {
+    "E01": {
+      "ast_parse": "PASS",
+      "checks_function_count": 1,
+      "checks_function_present": true,
+      "declared_policy_id": "CL-E01",
+      "expected_kernel_count": 3,
+      "one_source_comment": true,
+      "path": "verifiers/verifier_01_exact_api_compile_link.py",
+      "policy_id_match": true,
+      "python_comment_count": 1,
+      "sha256": "b88e4ebab6310854c5d6c4f08ed968cf00b7be377f4d1b718d8b255ff7e36b0e"
+    },
+    "E02": {
+      "ast_parse": "PASS",
+      "checks_function_count": 1,
+      "checks_function_present": true,
+      "declared_policy_id": "CL-E02",
+      "expected_kernel_count": 3,
+      "one_source_comment": true,
+      "path": "verifiers/verifier_02_semantic_boundaries.py",
+      "policy_id_match": true,
+      "python_comment_count": 1,
+      "sha256": "8745b8da483b58583c2579af7b486d0c799cceaad2fc41bf1af8d802ffc8a86f"
+    },
+    "E03": {
+      "ast_parse": "PASS",
+      "checks_function_count": 1,
+      "checks_function_present": true,
+      "declared_policy_id": "CL-E03",
+      "expected_kernel_count": 3,
+      "one_source_comment": true,
+      "path": "verifiers/verifier_03_official_functional_behavior.py",
+      "policy_id_match": true,
+      "python_comment_count": 1,
+      "sha256": "eafbdbbef876bd47681929897f7b6d07b0530f23765f200a408da1e203a0b8ad"
+    },
+    "E04": {
+      "ast_parse": "PASS",
+      "checks_function_count": 1,
+      "checks_function_present": true,
+      "declared_policy_id": "CL-E04",
+      "expected_kernel_count": 3,
+      "one_source_comment": true,
+      "path": "verifiers/verifier_04_canonical_time_arithmetic.py",
+      "policy_id_match": true,
+      "python_comment_count": 1,
+      "sha256": "ced600e61ca8d9866f79b9b20306e81340e8c6b708c4d6507d0d523514c5ca1b"
+    },
+    "E05": {
+      "ast_parse": "PASS",
+      "checks_function_count": 1,
+      "checks_function_present": true,
+      "declared_policy_id": "CL-E05",
+      "expected_kernel_count": 3,
+      "one_source_comment": true,
+      "path": "verifiers/verifier_05_factory_observer_odr.py",
+      "policy_id_match": true,
+      "python_comment_count": 1,
+      "sha256": "7cde3de7a0a2250b3ab872906751c99a0b7ad36bdedfa3bd974dc96439275343"
+    }
+  }
+}

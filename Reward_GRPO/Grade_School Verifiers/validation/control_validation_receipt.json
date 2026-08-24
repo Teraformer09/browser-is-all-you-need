@@ -1,0 +1,1344 @@
+{
+  "candidate_cases": [
+    {
+      "candidate_sha256": {
+        "grade_school.cpp": "1cdf88a95c3fb712a3ba13ff04f27e2cf499c6a9cc8c1bb0b0248a9f5b9b8f29",
+        "grade_school.h": "5b6a05abfaf2b3c73976db3ddbd86adb283c1e5110e93f3d3b7f9032adc34f1b"
+      },
+      "case_id": "reference_positive",
+      "policies": {
+        "E01": {
+          "candidate_source_sha256": "c597e309cf00f9e4f74778bc23477158d61f23a8a79a00b8113bcd0787184859",
+          "kernel_ids": [
+            "1A",
+            "1B",
+            "1C",
+            "1D",
+            "1E"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "implementation compiled",
+            "official consumer compiled",
+            "external consumer compiled",
+            "external consumer linked",
+            "clean CMake target built"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "fc2ad295a1629aeef56b3953893cebcf9b6462070428c21b7f10111b05e6a06b",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E02": {
+          "candidate_source_sha256": "c597e309cf00f9e4f74778bc23477158d61f23a8a79a00b8113bcd0787184859",
+          "kernel_ids": [
+            "2A",
+            "2B",
+            "2C",
+            "2D"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "candidate is clean under -Wall",
+            "candidate is clean under -Wextra",
+            "candidate is clean under -Wpedantic",
+            "combined warning-as-error build passed"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "0c3a676dd9c64f00cf0277df96530d3a4580904e70287028ee7437579fd673d6",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E03": {
+          "candidate_source_sha256": "c597e309cf00f9e4f74778bc23477158d61f23a8a79a00b8113bcd0787184859",
+          "kernel_ids": [
+            "3A",
+            "3B",
+            "3C",
+            "3D"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "public_type probe compiled",
+            "public_names probe compiled",
+            "exact_signatures probe compiled",
+            "exact API linked and was minimally callable"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "0ce6247b9614937c6660914bb07dc05c163eee763190d96152f3c0bec638a8da",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E04": {
+          "candidate_source_sha256": "c597e309cf00f9e4f74778bc23477158d61f23a8a79a00b8113bcd0787184859",
+          "kernel_ids": [
+            "4A",
+            "4B",
+            "4C"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "header is self-contained",
+            "implementation owns its public header",
+            "all non-system dependencies are authorized"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "269872d241fd3cf8ea4586002496ce349121f004499c4b217156644596d8f2b2",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E05": {
+          "candidate_source_sha256": "c597e309cf00f9e4f74778bc23477158d61f23a8a79a00b8113bcd0787184859",
+          "kernel_ids": [
+            "5A",
+            "5B",
+            "5C"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "exactly eight pinned official tests are selected",
+            "all eight official tests passed",
+            "official 8/8 result repeated three times"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "cb4b3f4fbb4ef35406bf4d580196654018eab8fba164274f72d94b4b282b559c",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E06": {
+          "candidate_source_sha256": "c597e309cf00f9e4f74778bc23477158d61f23a8a79a00b8113bcd0787184859",
+          "kernel_ids": [
+            "6A",
+            "6B",
+            "6C",
+            "6D",
+            "6E"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "exact_state_shape relation passed",
+            "numeric_alphabetical_order relation passed",
+            "missing_grade_nonmutation relation passed",
+            "grade_roster_consistency relation passed",
+            "generated_oracle relation passed"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "d55ffdff0dae46e43c0a6826acc5a459ccc462034359ac5d114d391d54a5da69",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E09": {
+          "candidate_source_sha256": "c597e309cf00f9e4f74778bc23477158d61f23a8a79a00b8113bcd0787184859",
+          "kernel_ids": [
+            "9A",
+            "9B",
+            "9C",
+            "9D"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "official suite passed under asan",
+            "official suite passed under ubsan",
+            "sanitized semantic or stress executions passed",
+            "sanitized semantic or stress executions passed"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "b9caed93aa81465d4338d9dfade19afba25faf9f764d687c2af30df246ca907f",
+          "source_immutable": true,
+          "status": "pass"
+        }
+      },
+      "source_unchanged": true
+    },
+    {
+      "candidate_sha256": {
+        "grade_school.cpp": "fdbf732f8e4b3823651e84e87215ee3278a39ad129fb6f9603dbd229e8766b8f",
+        "grade_school.h": "2ecfb4bbf8afb94a75bc491a1d431ed3d0379322e9dccdd5e6288ef0033d0c7f"
+      },
+      "case_id": "midband_trial_1_positive",
+      "policies": {
+        "E01": {
+          "candidate_source_sha256": "b245119b76a716f64e686e5bf33f04df2b0db1d8cb0941325de2279e639dc717",
+          "kernel_ids": [
+            "1A",
+            "1B",
+            "1C",
+            "1D",
+            "1E"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "implementation compiled",
+            "official consumer compiled",
+            "external consumer compiled",
+            "external consumer linked",
+            "clean CMake target built"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "40ab906c4bcb946912480ffaac84a01ca9159088e828304fc6b12896bc1ae17a",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E02": {
+          "candidate_source_sha256": "b245119b76a716f64e686e5bf33f04df2b0db1d8cb0941325de2279e639dc717",
+          "kernel_ids": [
+            "2A",
+            "2B",
+            "2C",
+            "2D"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "candidate is clean under -Wall",
+            "candidate is clean under -Wextra",
+            "candidate is clean under -Wpedantic",
+            "combined warning-as-error build passed"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "3f183cd55a648ce8d787af812d263c4a695cacc78fb1f7f9b4ed05612705098e",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E03": {
+          "candidate_source_sha256": "b245119b76a716f64e686e5bf33f04df2b0db1d8cb0941325de2279e639dc717",
+          "kernel_ids": [
+            "3A",
+            "3B",
+            "3C",
+            "3D"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "public_type probe compiled",
+            "public_names probe compiled",
+            "exact_signatures probe compiled",
+            "exact API linked and was minimally callable"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "6852f5df72aa5a884bc97fa3f2f5fb1e8a133fd6d06ff817cbcff830be336108",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E04": {
+          "candidate_source_sha256": "b245119b76a716f64e686e5bf33f04df2b0db1d8cb0941325de2279e639dc717",
+          "kernel_ids": [
+            "4A",
+            "4B",
+            "4C"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "header is self-contained",
+            "implementation owns its public header",
+            "all non-system dependencies are authorized"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "249449fcc0287082224769308a890c6d2a7856f48631c33e5790cbda98d7cd04",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E05": {
+          "candidate_source_sha256": "b245119b76a716f64e686e5bf33f04df2b0db1d8cb0941325de2279e639dc717",
+          "kernel_ids": [
+            "5A",
+            "5B",
+            "5C"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "exactly eight pinned official tests are selected",
+            "all eight official tests passed",
+            "official 8/8 result repeated three times"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "8d134a7400b527d57cbf885290bc920bb5d4ac5ccda1c0dfc62254d16e955d8d",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E06": {
+          "candidate_source_sha256": "b245119b76a716f64e686e5bf33f04df2b0db1d8cb0941325de2279e639dc717",
+          "kernel_ids": [
+            "6A",
+            "6B",
+            "6C",
+            "6D",
+            "6E"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "exact_state_shape relation passed",
+            "numeric_alphabetical_order relation passed",
+            "missing_grade_nonmutation relation passed",
+            "grade_roster_consistency relation passed",
+            "generated_oracle relation passed"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "5cee4ac50e1f2867c62eb5af792b4d78e8c90e59fe9fee25a980323bcefa2e1d",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E09": {
+          "candidate_source_sha256": "b245119b76a716f64e686e5bf33f04df2b0db1d8cb0941325de2279e639dc717",
+          "kernel_ids": [
+            "9A",
+            "9B",
+            "9C",
+            "9D"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "official suite passed under asan",
+            "official suite passed under ubsan",
+            "sanitized semantic or stress executions passed",
+            "sanitized semantic or stress executions passed"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "0036b3de7ee6c2734c135c856174a2495b4637ce94c4388d4c91705ba37bbb58",
+          "source_immutable": true,
+          "status": "pass"
+        }
+      },
+      "source_unchanged": true
+    },
+    {
+      "candidate_sha256": {
+        "grade_school.cpp": "d0caec86dee2cc8b1888a249f4b5edf54672abfe88106e25208d355224e9d466",
+        "grade_school.h": "d108127575bd345812ee9c4a37b45aafefbcefbcc24315fb6b3c3776170f8aa8"
+      },
+      "case_id": "midband_trial_2_positive",
+      "policies": {
+        "E01": {
+          "candidate_source_sha256": "0e8deb313f2e4802a1532c778de633642be90e678b55c185af4e1b9858c05df8",
+          "kernel_ids": [
+            "1A",
+            "1B",
+            "1C",
+            "1D",
+            "1E"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "implementation compiled",
+            "official consumer compiled",
+            "external consumer compiled",
+            "external consumer linked",
+            "clean CMake target built"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "d88f7f7216f0f02b6b70bcd7b1e319d70e09a173a3e6ac1298e8c206f7bd9dfb",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E02": {
+          "candidate_source_sha256": "0e8deb313f2e4802a1532c778de633642be90e678b55c185af4e1b9858c05df8",
+          "kernel_ids": [
+            "2A",
+            "2B",
+            "2C",
+            "2D"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "candidate is clean under -Wall",
+            "candidate is clean under -Wextra",
+            "candidate is clean under -Wpedantic",
+            "combined warning-as-error build passed"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "f41cba9a73a48ec73fc8a966a82015960f55fd10475a4bb253461eda90426f7c",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E03": {
+          "candidate_source_sha256": "0e8deb313f2e4802a1532c778de633642be90e678b55c185af4e1b9858c05df8",
+          "kernel_ids": [
+            "3A",
+            "3B",
+            "3C",
+            "3D"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "public_type probe compiled",
+            "public_names probe compiled",
+            "exact_signatures probe compiled",
+            "exact API linked and was minimally callable"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "c74cb8d1678aa822bdb4f8a9af3cd4496397ec82ee217b729fb12a23f430a5fd",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E04": {
+          "candidate_source_sha256": "0e8deb313f2e4802a1532c778de633642be90e678b55c185af4e1b9858c05df8",
+          "kernel_ids": [
+            "4A",
+            "4B",
+            "4C"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "header is self-contained",
+            "implementation owns its public header",
+            "all non-system dependencies are authorized"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "25bec8c75da8fddef4367405733240b4298d0e6521582d99684eab3ee081ae4a",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E05": {
+          "candidate_source_sha256": "0e8deb313f2e4802a1532c778de633642be90e678b55c185af4e1b9858c05df8",
+          "kernel_ids": [
+            "5A",
+            "5B",
+            "5C"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "exactly eight pinned official tests are selected",
+            "all eight official tests passed",
+            "official 8/8 result repeated three times"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "ff2d5ea6eeda667be9c59fad14fd642b1470346f6fa4a91b72d2f0bf131fe93c",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E06": {
+          "candidate_source_sha256": "0e8deb313f2e4802a1532c778de633642be90e678b55c185af4e1b9858c05df8",
+          "kernel_ids": [
+            "6A",
+            "6B",
+            "6C",
+            "6D",
+            "6E"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "exact_state_shape relation passed",
+            "numeric_alphabetical_order relation passed",
+            "missing_grade_nonmutation relation passed",
+            "grade_roster_consistency relation passed",
+            "generated_oracle relation passed"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "a08aa3e1aeebccd9c747388665938ed94a6740d140b236a79abee175e5900757",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E09": {
+          "candidate_source_sha256": "0e8deb313f2e4802a1532c778de633642be90e678b55c185af4e1b9858c05df8",
+          "kernel_ids": [
+            "9A",
+            "9B",
+            "9C",
+            "9D"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "official suite passed under asan",
+            "official suite passed under ubsan",
+            "sanitized semantic or stress executions passed",
+            "sanitized semantic or stress executions passed"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "1f4904ed18d6a1a78d02779360e46385c55815f8c535df283b20973246fea9ab",
+          "source_immutable": true,
+          "status": "pass"
+        }
+      },
+      "source_unchanged": true
+    },
+    {
+      "candidate_sha256": {
+        "grade_school.cpp": "e5fc8748604dbd3c2c244105cd5c98ba52250462915bb8400d937381ab3b255e",
+        "grade_school.h": "5b6a05abfaf2b3c73976db3ddbd86adb283c1e5110e93f3d3b7f9032adc34f1b"
+      },
+      "case_id": "unsorted_names_mutant",
+      "policies": {
+        "E01": {
+          "candidate_source_sha256": "f5824aee11dcdc52d7d8d7dfd4e8fb2bc72f9c64129022af6d75e58b978b6108",
+          "kernel_ids": [
+            "1A",
+            "1B",
+            "1C",
+            "1D",
+            "1E"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "implementation compiled",
+            "official consumer compiled",
+            "external consumer compiled",
+            "external consumer linked",
+            "clean CMake target built"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "a9b68ae0de93b4f3fb1db7ba1a143f97d75a4d8bcf02c5a10a7bedcc3ba43f0d",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E02": {
+          "candidate_source_sha256": "f5824aee11dcdc52d7d8d7dfd4e8fb2bc72f9c64129022af6d75e58b978b6108",
+          "kernel_ids": [
+            "2A",
+            "2B",
+            "2C",
+            "2D"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "candidate is clean under -Wall",
+            "candidate is clean under -Wextra",
+            "candidate is clean under -Wpedantic",
+            "combined warning-as-error build passed"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "a3dfa35e421eab10818f5df58ac0bf1b9d01567e4de10391e37991ce02e7147f",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E03": {
+          "candidate_source_sha256": "f5824aee11dcdc52d7d8d7dfd4e8fb2bc72f9c64129022af6d75e58b978b6108",
+          "kernel_ids": [
+            "3A",
+            "3B",
+            "3C",
+            "3D"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "public_type probe compiled",
+            "public_names probe compiled",
+            "exact_signatures probe compiled",
+            "exact API linked and was minimally callable"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "b8e88e22b25738f68625ef4910aaac9cc47b7dd815965b64930afa90be6a409f",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E04": {
+          "candidate_source_sha256": "f5824aee11dcdc52d7d8d7dfd4e8fb2bc72f9c64129022af6d75e58b978b6108",
+          "kernel_ids": [
+            "4A",
+            "4B",
+            "4C"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "header is self-contained",
+            "implementation owns its public header",
+            "all non-system dependencies are authorized"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "7559ef48f2d9202aad8895d8e06651974d98aa30d9d13dad701e3599273f7af5",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E05": {
+          "candidate_source_sha256": "f5824aee11dcdc52d7d8d7dfd4e8fb2bc72f9c64129022af6d75e58b978b6108",
+          "kernel_ids": [
+            "5A",
+            "5B",
+            "5C"
+          ],
+          "kernel_scores": [
+            1,
+            -1,
+            -1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "fail",
+            "fail"
+          ],
+          "kernel_summaries": [
+            "exactly eight pinned official tests are selected",
+            "complete official suite did not pass",
+            "official outcomes were not three stable 8/8 passes"
+          ],
+          "process_returncode": 1,
+          "reason": null,
+          "receipt_sha256": "48f3feec86663780b6eb92fd76936a1783e0db4dd0804a854265396a527db23a",
+          "source_immutable": true,
+          "status": "fail"
+        },
+        "E06": {
+          "candidate_source_sha256": "f5824aee11dcdc52d7d8d7dfd4e8fb2bc72f9c64129022af6d75e58b978b6108",
+          "kernel_ids": [
+            "6A",
+            "6B",
+            "6C",
+            "6D",
+            "6E"
+          ],
+          "kernel_scores": [
+            1,
+            -1,
+            1,
+            1,
+            -1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "fail",
+            "pass",
+            "pass",
+            "fail"
+          ],
+          "kernel_summaries": [
+            "exact_state_shape relation passed",
+            "numeric_alphabetical_order relation failed",
+            "missing_grade_nonmutation relation passed",
+            "grade_roster_consistency relation passed",
+            "generated_oracle relation failed"
+          ],
+          "process_returncode": 1,
+          "reason": null,
+          "receipt_sha256": "65093dec2607b1a04a2c3c45a0bbd977a3fa5a0a6dbf865162331be050f0ae71",
+          "source_immutable": true,
+          "status": "fail"
+        },
+        "E09": {
+          "candidate_source_sha256": "f5824aee11dcdc52d7d8d7dfd4e8fb2bc72f9c64129022af6d75e58b978b6108",
+          "kernel_ids": [
+            "9A",
+            "9B",
+            "9C",
+            "9D"
+          ],
+          "kernel_scores": [
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "kernel_statuses": [
+            "fail",
+            "fail",
+            "fail",
+            "fail"
+          ],
+          "kernel_summaries": [
+            "official suite failed under asan",
+            "official suite failed under ubsan",
+            "sanitized semantic or stress execution failed",
+            "sanitized semantic or stress execution failed"
+          ],
+          "process_returncode": 1,
+          "reason": null,
+          "receipt_sha256": "e541741afd31ec612f896944436067d2c183892bbd135d478122d57e24aafb06",
+          "source_immutable": true,
+          "status": "fail"
+        }
+      },
+      "source_unchanged": true
+    },
+    {
+      "candidate_sha256": {
+        "grade_school.cpp": "1cdf88a95c3fb712a3ba13ff04f27e2cf499c6a9cc8c1bb0b0248a9f5b9b8f29",
+        "grade_school.h": "5b6a05abfaf2b3c73976db3ddbd86adb283c1e5110e93f3d3b7f9032adc34f1b"
+      },
+      "case_id": "reference_repeat",
+      "policies": {
+        "E01": {
+          "candidate_source_sha256": "c597e309cf00f9e4f74778bc23477158d61f23a8a79a00b8113bcd0787184859",
+          "kernel_ids": [
+            "1A",
+            "1B",
+            "1C",
+            "1D",
+            "1E"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "implementation compiled",
+            "official consumer compiled",
+            "external consumer compiled",
+            "external consumer linked",
+            "clean CMake target built"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "a730abac38b6ddc310335def540fe9d63650bead288addb80473042a5a105f90",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E02": {
+          "candidate_source_sha256": "c597e309cf00f9e4f74778bc23477158d61f23a8a79a00b8113bcd0787184859",
+          "kernel_ids": [
+            "2A",
+            "2B",
+            "2C",
+            "2D"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "candidate is clean under -Wall",
+            "candidate is clean under -Wextra",
+            "candidate is clean under -Wpedantic",
+            "combined warning-as-error build passed"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "c655311440eee9ab4e118c067c2f227e070a41a09d86ee75554f646fdf526b80",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E03": {
+          "candidate_source_sha256": "c597e309cf00f9e4f74778bc23477158d61f23a8a79a00b8113bcd0787184859",
+          "kernel_ids": [
+            "3A",
+            "3B",
+            "3C",
+            "3D"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "public_type probe compiled",
+            "public_names probe compiled",
+            "exact_signatures probe compiled",
+            "exact API linked and was minimally callable"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "8387ea30db3592194f1ad22f5af5c155d95aca92f5d6384aa79bdd3e7b8ec5d4",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E04": {
+          "candidate_source_sha256": "c597e309cf00f9e4f74778bc23477158d61f23a8a79a00b8113bcd0787184859",
+          "kernel_ids": [
+            "4A",
+            "4B",
+            "4C"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "header is self-contained",
+            "implementation owns its public header",
+            "all non-system dependencies are authorized"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "87f11259cf104b5d91033322b530a9caf766ed06681dc9b63f5ca07534315809",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E05": {
+          "candidate_source_sha256": "c597e309cf00f9e4f74778bc23477158d61f23a8a79a00b8113bcd0787184859",
+          "kernel_ids": [
+            "5A",
+            "5B",
+            "5C"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "exactly eight pinned official tests are selected",
+            "all eight official tests passed",
+            "official 8/8 result repeated three times"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "855fc56f34967411e1f087416fd5f4f44e34687b15a6c65f61c2b1394765ae7e",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E06": {
+          "candidate_source_sha256": "c597e309cf00f9e4f74778bc23477158d61f23a8a79a00b8113bcd0787184859",
+          "kernel_ids": [
+            "6A",
+            "6B",
+            "6C",
+            "6D",
+            "6E"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "exact_state_shape relation passed",
+            "numeric_alphabetical_order relation passed",
+            "missing_grade_nonmutation relation passed",
+            "grade_roster_consistency relation passed",
+            "generated_oracle relation passed"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "50f6ded08cd9707f2dbe9961502ec59fb1b9ff3462e0095acc7c89d37a3aac27",
+          "source_immutable": true,
+          "status": "pass"
+        },
+        "E09": {
+          "candidate_source_sha256": "c597e309cf00f9e4f74778bc23477158d61f23a8a79a00b8113bcd0787184859",
+          "kernel_ids": [
+            "9A",
+            "9B",
+            "9C",
+            "9D"
+          ],
+          "kernel_scores": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "kernel_statuses": [
+            "pass",
+            "pass",
+            "pass",
+            "pass"
+          ],
+          "kernel_summaries": [
+            "official suite passed under asan",
+            "official suite passed under ubsan",
+            "sanitized semantic or stress executions passed",
+            "sanitized semantic or stress executions passed"
+          ],
+          "process_returncode": 0,
+          "reason": null,
+          "receipt_sha256": "d6773ed5c71d25a88048c8713ae2443d98df609fdb931cb8f2c1408c3dc1d691",
+          "source_immutable": true,
+          "status": "pass"
+        }
+      },
+      "source_unchanged": true
+    }
+  ],
+  "compiler": "13.3.0",
+  "invalid_cases": [
+    {
+      "case_id": "tampered_official_test",
+      "kind": "tampered_official_test",
+      "policy": "E05",
+      "result": {
+        "candidate_source_sha256": null,
+        "kernel_ids": [],
+        "kernel_scores": [],
+        "kernel_statuses": [],
+        "kernel_summaries": [],
+        "process_returncode": 2,
+        "reason": "protected asset hash mismatch: grade_school_test.cpp",
+        "receipt_sha256": "8aea51a3ca64110383c3b75363850bf6a4b2475dcebbe8f4d9bca96b08b7353b",
+        "source_immutable": null,
+        "status": "invalid"
+      }
+    },
+    {
+      "case_id": "missing_compiler",
+      "kind": "missing_compiler",
+      "policy": "E05",
+      "result": {
+        "candidate_source_sha256": null,
+        "kernel_ids": [],
+        "kernel_scores": [],
+        "kernel_statuses": [],
+        "kernel_summaries": [],
+        "process_returncode": 2,
+        "reason": "compiler is unavailable: grade-school-validator-compiler-does-not-exist",
+        "receipt_sha256": "958478fe83ebe9e9d3a3d5e41d19a6e2f8a27c7872aeb668bf509d32a908286a",
+        "source_immutable": null,
+        "status": "invalid"
+      }
+    }
+  ],
+  "pinned_instructions_sha256": "8dc7133cd5f0564717108757c27ad96ebadf44f03b5fde5c35b826aaeb0b4e0f",
+  "repeatability": {
+    "E01": {
+      "decision_equal": true,
+      "first_kernel_scores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "first_status": "pass",
+      "repeat_kernel_scores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "repeat_status": "pass"
+    },
+    "E02": {
+      "decision_equal": true,
+      "first_kernel_scores": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "first_status": "pass",
+      "repeat_kernel_scores": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "repeat_status": "pass"
+    },
+    "E03": {
+      "decision_equal": true,
+      "first_kernel_scores": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "first_status": "pass",
+      "repeat_kernel_scores": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "repeat_status": "pass"
+    },
+    "E04": {
+      "decision_equal": true,
+      "first_kernel_scores": [
+        1,
+        1,
+        1
+      ],
+      "first_status": "pass",
+      "repeat_kernel_scores": [
+        1,
+        1,
+        1
+      ],
+      "repeat_status": "pass"
+    },
+    "E05": {
+      "decision_equal": true,
+      "first_kernel_scores": [
+        1,
+        1,
+        1
+      ],
+      "first_status": "pass",
+      "repeat_kernel_scores": [
+        1,
+        1,
+        1
+      ],
+      "repeat_status": "pass"
+    },
+    "E06": {
+      "decision_equal": true,
+      "first_kernel_scores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "first_status": "pass",
+      "repeat_kernel_scores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "repeat_status": "pass"
+    },
+    "E09": {
+      "decision_equal": true,
+      "first_kernel_scores": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "first_status": "pass",
+      "repeat_kernel_scores": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "repeat_status": "pass"
+    }
+  },
+  "schema_version": 1,
+  "static_policies": [
+    "E01",
+    "E02",
+    "E03",
+    "E04",
+    "E05",
+    "E06",
+    "E09"
+  ],
+  "task_id": "local-aider-cpp/grade-school"
+}

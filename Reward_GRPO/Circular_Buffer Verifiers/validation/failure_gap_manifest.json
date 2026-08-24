@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "task_id": "local-aider-cpp/circular-buffer",
+  "source_run_id": "execution-bank-RL-v2-think-r2/fixed26-mt2-4x-20260818",
+  "source_checkpoint": "execution-bank-RL-v2-think-r2/checkpoints/grpo_lora_r16/iter_0000019/adapter",
+  "source_archive": "gs://skypilot-filemounts-ubuntu-f0048940-88p8zkcq/execution-bank-RL-v2-think-r2/fixed26-mt2-4x-20260818",
+  "evaluation_controls": {
+    "aider_revision": "5dc9490bb35f9729ef2c95d00a19ccd30c26339c",
+    "model": "openai/glm-4.7-flash-grpo",
+    "edit_format": "whole",
+    "max_turns": 2,
+    "trial_count": 4
+  },
+  "baseline": {
+    "source_commit": "56edd9767fc8426776fe3f5379c5815a18383e59",
+    "contract_sha256": "da35ac048f02c8721bede2d2ec2dae4399d2bade333675665743c82d369f8774",
+    "source_files": ["circular_buffer.h"],
+    "implementation_files": []
+  },
+  "current": {
+    "contract_sha256": "e87cee9be170e33c1ebf39d02ddbef57c76956ec730f833e006166f21d330a42",
+    "source_files": ["circular_buffer.h", "circular_buffer.cpp"],
+    "implementation_files": ["circular_buffer.cpp"],
+    "verifier_sha256": {
+      "E01": "260cfdb8860cee1317242e39c960e9b3c52646b2976e36b2b33851806af10201",
+      "E02": "ba516d16eec5251208323122ac9666c148ab9eba5f9ba5905a09d1d905ce774d",
+      "E03": "3f13c5fed5fb8f6485463a5247cfefd8c37a59b6284bb7208df5d059c116184f",
+      "E04": "255d757e4ec1c434d5e7af3e2529e7f45986bdbc8499f5a97d716a8ee05a9b69",
+      "E05": "bf9736741f220ef733aeac0ba09e2429d0468a82840c06708c9498213e4da91c"
+    }
+  },
+  "official": {
+    "policy_id": "E03",
+    "test_sha256": "e96c023cf3ac88ded69a5306655cb4b9097da219642fcb99b58d84bdf59f8e80",
+    "expected_assertions": 60,
+    "expected_test_cases": 16
+  },
+  "source_evidence_sha256": {
+    "trial_1_chat": "d8f2473b3a918bfbdb7d40cb8b2868751eee15bb52aeb38e1c2fb37b0d7a2ade",
+    "trial_1_results": "b3753d0625cc9d8967486a1d56255a9401047f6451bbd7d9bc097508a1708595",
+    "trial_2_chat": "6abd3e60aed47ab1154e00222aa5d47ab62f2cb0b8904410fec1f1cb14685bb6",
+    "trial_2_results": "799d071adc4fa671dc0b527fcfb784d048211ce0a2aafd0002cf25b3b04caa70",
+    "trial_3_chat": "44d9913864d3c8a17f64fd98b914f4faeba5eafd31d09cc7e344d00687fdc70a",
+    "trial_3_results": "c5ce0f401fb8b63eb29191912163fc92def5430ed1c7588990d4e32a767a715f",
+    "trial_4_chat": "600ea5266cc2947a380c21ca045577bb82083f9a86d7a4bdd831d538e7378901",
+    "trial_4_results": "d3ecd9721636da212046e1661030912fd2b7e7ec30d8c87d91350fa52b340daa"
+  },
+  "observed_outcome": {
+    "pass_at_1": "1/4",
+    "pass_by_turn_2": "2/4",
+    "infrastructure_invalid": 0
+  },
+  "cases": [
+    {
+      "case_id": "midband_rl_v2_trial_1_final_turn_2",
+      "source_sample_id": "trial-1/circular-buffer/final-turn-2",
+      "source_path": "cases/midband_rl_v2_trial_1_final_turn_2",
+      "candidate_sha256": {
+        "circular_buffer.h": "177066ae0ee3d3559e7c367da73b5122af94a33ce32cffad937c6144f37517cd",
+        "circular_buffer.cpp": "b93ad7bcafba6fdb89589d3f09ce889b267c0324d82b0d386ac10b1628189e18"
+      },
+      "source_outcome": "fail",
+      "failure_class": "head-tail-empty-full-alias",
+      "expected_baseline_classification": "agreement_fail",
+      "expected_current_classification": "agreement_fail"
+    },
+    {
+      "case_id": "midband_rl_v2_trial_2_turn_1",
+      "source_sample_id": "trial-2/circular-buffer/turn-1",
+      "source_path": "cases/midband_rl_v2_trial_2_turn_1",
+      "candidate_sha256": {
+        "circular_buffer.h": "ddffbe83c4da6a18908e3350e11bfa6a01acee589d1550a99e643594cfa29a16",
+        "circular_buffer.cpp": "1282f30476accdfbe69c0d8131d0206eb3a83717ee854ef7e9b914108543df21"
+      },
+      "source_outcome": "fail",
+      "failure_class": "duplicate-template-definitions-across-editable-files",
+      "expected_baseline_classification": "missed_failure",
+      "expected_current_classification": "agreement_fail"
+    },
+    {
+      "case_id": "midband_rl_v2_trial_2_turn_2",
+      "source_sample_id": "trial-2/circular-buffer/turn-2",
+      "source_path": "cases/midband_rl_v2_trial_2_turn_2",
+      "candidate_sha256": {
+        "circular_buffer.h": "ddffbe83c4da6a18908e3350e11bfa6a01acee589d1550a99e643594cfa29a16",
+        "circular_buffer.cpp": "f51f83e078fab0e8a0c20d95c497a2fef6d1417183d1d0e92cb8e26b9a62a846"
+      },
+      "source_outcome": "pass",
+      "failure_class": null,
+      "expected_baseline_classification": "agreement_pass",
+      "expected_current_classification": "agreement_pass"
+    },
+    {
+      "case_id": "midband_rl_v2_trial_3_turn_1",
+      "source_sample_id": "trial-3/circular-buffer/turn-1",
+      "source_path": "cases/midband_rl_v2_trial_3_turn_1",
+      "candidate_sha256": {
+        "circular_buffer.h": "d4065f8fa26a47a58995bc50761365045faca341bddebe9eb3f6814ffa6eef30",
+        "circular_buffer.cpp": "18bda3c51822854ab1093571e9f90f86b745d201b9502556197f13bc50385ba4"
+      },
+      "source_outcome": "pass",
+      "failure_class": null,
+      "expected_baseline_classification": "agreement_pass",
+      "expected_current_classification": "agreement_pass"
+    },
+    {
+      "case_id": "midband_rl_v2_trial_4_turn_1",
+      "source_sample_id": "trial-4/circular-buffer/turn-1",
+      "source_path": "cases/midband_rl_v2_trial_4_turn_1",
+      "candidate_sha256": {
+        "circular_buffer.h": "461ff4456e71b883351a6762221111ab4f3e3d3070a2bde52c2aa7217634e00f",
+        "circular_buffer.cpp": "b93ad7bcafba6fdb89589d3f09ce889b267c0324d82b0d386ac10b1628189e18"
+      },
+      "source_outcome": "fail",
+      "failure_class": "full-overwrite-count-increment",
+      "expected_baseline_classification": "agreement_fail",
+      "expected_current_classification": "agreement_fail"
+    }
+  ]
+}
