@@ -1,0 +1,6 @@
+{
+  "contract_version": "portable-adder-v1",
+  "declarations": [
+    {"kind": "FunctionDecl", "namespace": "", "name": "add", "type_contains": "int (int, int)"}
+  ]
+}
