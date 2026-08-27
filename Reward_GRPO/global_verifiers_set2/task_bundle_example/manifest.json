@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "task_id": "portable-adder",
+  "contract_version": "portable-adder-v1",
+  "editable_files": ["adder.h"],
+  "protected_files": {
+    "instructions.md": "067ebc6a50abeb916274517a6e24f6dd8447eecf831e34231870a67260355dea",
+    "public_api.json": "0fe9d6869c5e06eae4b8a80dcbbce2068c2b3ec3e4a72bb7f0a72438934da8a8",
+    "build_probe.cpp": "79ccc0890dd692322b5179cb140b8efa21efcd881d853729b7764201bc23f133",
+    "api_caller.cpp": "f67ed1a77f707d53af18ad9c4f1e32128d984dd53a7560522695918da7cb299d",
+    "official_tests.cpp": "06ff7571b0f4ea745b67bb86b8494b96fb72fd40c35317b9dd08b19943b3c85d",
+    "protected_asset_hashes.json": "c60e28c34b4d39bfa3ff9dc6a41ccfc4c01ef645c9db9351a990d49dd12e6ea6"
+  },
+  "preflight_commands": [["g++", "--version"], ["clang++", "--version"]],
+  "build": {
+    "compiler": "g++",
+    "standard": "c++17",
+    "flags": ["-Wall", "-Wextra", "-Wpedantic", "-Werror"],
+    "sources": ["build_probe.cpp"],
+    "include_dirs": ["."],
+    "libraries": []
+  },
+  "api": {
+    "contract": "public_api.json",
+    "candidate_header": "adder.h",
+    "caller": "api_caller.cpp",
+    "clang": "clang++",
+    "required_declarations": [
+      {"kind": "FunctionDecl", "name": "add", "type_contains": "int (int, int)"}
+    ]
+  },
+  "functional": {"test_source": "official_tests.cpp"},
+  "portability": {"compilers": ["g++", "clang++"]},
+  "runtime": {"image": "gcc:13.3"},
+  "limits": {"timeout_s": 30, "memory_mb": 1024, "pids": 64, "cpus": 2, "output_bytes": 200000}
+}
