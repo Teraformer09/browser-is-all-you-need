@@ -7,14 +7,18 @@ from pathlib import Path
 from typing import Any, Callable
 
 from receipt import PolicyReceipt, policy
-from sandbox import CommandResult, Limits, result_facts
+from sandbox import CommandResult, Limits, executable_missing, result_facts
 
 Execute = Callable[[list[str], Path, Limits, dict[str, str] | None], CommandResult]
 
 
 def _invalid(result: CommandResult) -> str | None:
-    if result.launch_error:
+    if result.launch_error_kind == "DOCKER_EXECUTABLE_MISSING":
+        return "BUILD_EXECUTOR_UNAVAILABLE"
+    if executable_missing(result) or result.returncode == 127:
         return "COMPILER_UNAVAILABLE"
+    if result.launch_error:
+        return "BUILD_EXECUTOR_UNAVAILABLE"
     if result.timed_out:
         return "VERIFIER_TIMEOUT"
     return None
@@ -44,7 +48,10 @@ def verify(workspace: Path, artifacts: Path, manifest: dict[str, Any], execute: 
         if invalid:
             return policy("G02", "INVALID", invalid, commands=receipts), []
         if result.returncode != 0:
-            reason = "WARNING_FAIL" if re.search(r"warning:.*\[-Werror", result.stderr) else "COMPILE_FAIL"
+            warning_as_error = re.search(
+                r"\[-Werror(?:=|\])|all warnings being treated as errors", result.stderr
+            )
+            reason = "WARNING_FAIL" if warning_as_error else "COMPILE_FAIL"
             return policy("G02", "FAIL", reason, commands=receipts), []
         objects.append(obj)
     return policy("G02", "PASS", "OBJECTS_COMPILED", commands=receipts,

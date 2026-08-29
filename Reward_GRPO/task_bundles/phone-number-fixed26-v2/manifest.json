@@ -1,12 +1,14 @@
 {
   "api": {
+    "ast_flags": [],
     "caller": "api_caller.cpp",
-    "candidate_header": "adder.h",
+    "candidate_header": "phone_number.h",
     "clang": "clang++",
     "contract": "public_api.json"
   },
   "build": {
     "compiler": "g++",
+    "defines": [],
     "flags": [
       "-Wall",
       "-Wextra",
@@ -17,14 +19,16 @@
       "."
     ],
     "libraries": [],
+    "link_args": [],
     "sources": [
-      "build_probe.cpp"
+      "phone_number.cpp"
     ],
     "standard": "c++17"
   },
-  "contract_version": "portable-adder-v1",
+  "contract_version": "fixed26-contract-v2-phone-number",
   "editable_files": [
-    "adder.h"
+    "phone_number.h",
+    "phone_number.cpp"
   ],
   "functional": {
     "bridge_compile_flags": [],
@@ -32,9 +36,10 @@
     "bridge_sources": [
       "api_bridge.cpp"
     ],
+    "compile_flags": [],
     "defines": [],
     "env": {},
-    "expected_total": 3,
+    "expected_total": 18,
     "include_dirs": [
       "."
     ],
@@ -43,9 +48,9 @@
     "mode": "external_oracle_v1",
     "oracle_cases": "official_cases.json.gz",
     "oracle_cases_encoding": "gzip",
-    "result_regex": "(?m)^tests_passed=(?P<passed>[0-9]+)/(?P<total>[0-9]+)$",
+    "result_regex": "(?m)^GV2_PHONE_FIXED26_V2_RESULT passed=(?P<passed>[0-9]+) total=(?P<total>[0-9]+)$",
     "result_stream": "stdout",
-    "runtime_assets": [],
+    "run_args": [],
     "test_source_encoding": "gzip",
     "test_sources": [
       "official_cases.json.gz"
@@ -78,18 +83,25 @@
       "--version"
     ]
   ],
+  "prompt": {
+    "kind": "aider-whole-file-v5dc9490bb",
+    "public_starter_files": [
+      "phone_number.h",
+      "phone_number.cpp"
+    ]
+  },
   "protected_files": {
-    "api_bridge.cpp": "bdf1c9e23635b6aee76581db593d1d34b20057ba6cc2a74cd4bf3b2353556cc2",
-    "api_caller.cpp": "f67ed1a77f707d53af18ad9c4f1e32128d984dd53a7560522695918da7cb299d",
-    "build_probe.cpp": "79ccc0890dd692322b5179cb140b8efa21efcd881d853729b7764201bc23f133",
-    "instructions.md": "067ebc6a50abeb916274517a6e24f6dd8447eecf831e34231870a67260355dea",
-    "official_cases.json.gz": "dd014d459ef0ff05abcc069e132bd0b0dabc363012493291f70815d10042a9e1",
-    "protected_asset_hashes.json": "7723bca1ed8571db467df4a282cc35789795793140f67e7bd294b2426b2ff4d8",
-    "public_api.json": "5c1bc30a43a43fb10ccdb07af6031b848eb65830713c808243f148f986bff3b6"
+    "api_bridge.cpp": "c839e0393e8b2b9e63757b48f2c12141f17a2d25b41e57280671332816298bd2",
+    "api_caller.cpp": "6b6a64a26ccb5e4de41f26c548332fb29c2a3252932c3079e0657cd4eafc11d4",
+    "instructions.md": "688f8b8082ed60ea107cbddd6f0418ab512df3ab8c13db5ab39436987a41df3b",
+    "official_cases.json.gz": "58430881357688284a6be929d071576288328a17176fa353f945106d7a7e66c0",
+    "protected_asset_hashes.json": "b06b5d4ba5d92531327f6ed3873d3061d9a021f9eae0597878078b1fe17a612e",
+    "public_api.json": "c9b93685c65b10805bc525bb5a4c4fd60e12ef44e01f33c0e6503dac704ff606",
+    "source_provenance.json": "b4540b9efd203f7a9d9164ff5287126d8d4f8d8c576ea231d8032a053c2ea0e7"
   },
   "runtime": {
     "image": "glm47-strange-multi-env@sha256:dc1e058dc8697442386862ddab7f9ca7230151419c63a5e4652b7a0ddc76e204"
   },
   "schema_version": 2,
-  "task_id": "portable-adder"
+  "task_id": "phone-number-fixed26-v2"
 }

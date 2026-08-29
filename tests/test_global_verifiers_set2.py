@@ -53,6 +53,7 @@ def test_reference_passes_g01_through_g07(tmp_path: Path) -> None:
     assert receipt.status == "PASS"
     assert reasons(receipt) == {
         "G01": ("PASS", "BOUNDARY_AUTHENTICATED"),
+        "PREFLIGHT": ("PASS", "DEPENDENCIES_AVAILABLE"),
         "G02": ("PASS", "OBJECTS_COMPILED"),
         "G03": ("PASS", "API_LINKED"),
         "G04": ("PASS", "FUNCTIONAL_PASS"),
@@ -85,7 +86,7 @@ def test_logic_defect_reaches_g04(tmp_path: Path) -> None:
 def test_protected_asset_corruption_is_invalid(tmp_path: Path) -> None:
     task = bundle(tmp_path)
     manifest = json.loads((task / "manifest.json").read_text())
-    (task / "official_tests.cpp").write_text("tampered\n")
+    (task / "official_cases.json.gz").write_bytes(b"tampered\n")
     result = g01.verify(task, manifest)
     assert (result.status, result.reason) == ("INVALID", "PROTECTED_ASSET_CORRUPTED")
 
