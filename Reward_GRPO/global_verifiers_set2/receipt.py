@@ -30,15 +30,39 @@ class VerificationReceipt:
     policies: list[PolicyReceipt]
     returned_files: list[str] = field(default_factory=list)
     inherited_files: list[str] = field(default_factory=list)
+    format_valid: bool = True
 
     def payload(self) -> dict[str, Any]:
         return asdict(self)
 
     def write(self, path: Path) -> None:
         payload = self.payload()
-        canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-        payload["receipt_sha256"] = hashlib.sha256(canonical.encode()).hexdigest()
+        payload["receipt_sha256"] = receipt_sha256(payload)
         path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+
+
+def canonical_receipt(payload: dict[str, Any]) -> bytes:
+    unsigned = {key: value for key, value in payload.items() if key != "receipt_sha256"}
+    return json.dumps(unsigned, sort_keys=True, separators=(",", ":")).encode()
+
+
+def receipt_sha256(payload: dict[str, Any]) -> str:
+    return hashlib.sha256(canonical_receipt(payload)).hexdigest()
+
+
+def read_verified(path: Path) -> dict[str, Any]:
+    """Read a disk receipt and authenticate its canonical digest."""
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("verification receipt must be an object")
+    expected = payload.get("receipt_sha256")
+    if not isinstance(expected, str) or len(expected) != 64:
+        raise ValueError("verification receipt lacks a valid digest")
+    actual = receipt_sha256(payload)
+    if actual != expected:
+        raise ValueError("verification receipt digest mismatch")
+    return payload
 
 
 def policy(policy: str, status: Status, reason: str, **facts: Any) -> PolicyReceipt:

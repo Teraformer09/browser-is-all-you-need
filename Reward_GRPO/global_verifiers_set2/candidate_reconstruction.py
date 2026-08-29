@@ -9,7 +9,19 @@ from dataclasses import dataclass
 from pathlib import Path, PurePath
 from typing import Iterable
 
-FENCE = re.compile(r"(?ms)^([^\n`]+?)\s*\n```(?:cpp|c\+\+|cc|hpp|h)?\s*\n(.*?)^```\s*$")
+FENCE = re.compile(
+    r"^```(?P<language>[^\n]*)\n(?P<code>.*?)^```[ \t]*$", re.MULTILINE | re.DOTALL
+)
+TERMINAL_STOP = re.compile(
+    r"(?:[ \t\r\n]*(?:<\|endoftext\|>|<\|user\|>|<\|observation\|>))+$"
+)
+RECOVERABLE_LABEL = re.compile(
+    r"^(?:#{1,6}\s+|[-*]\s+)?`{0,2}(?P<label>[^`]+?)`{0,2}:?$"
+)
+PROTECTED_NAMES = {"CMakeLists.txt"}
+PROTECTED_SUFFIXES = ("_test.cpp", "_test.cc", "_test.h", ".cmake")
+MAX_RESPONSE_BYTES = 1024 * 1024
+THINKING_END = "</think>"
 
 
 @dataclass(frozen=True)
@@ -18,6 +30,7 @@ class Reconstruction:
     returned_files: list[str]
     inherited_files: list[str]
     candidate_sha256: str
+    format_valid: bool
 
 
 class ReconstructionError(ValueError):
@@ -55,6 +68,32 @@ def tree_sha256(root: Path, files: Iterable[str]) -> str:
     return digest.hexdigest()
 
 
+def _preceding_line(text: str, offset: int) -> str:
+    prefix = text[:offset].rstrip("\r\n")
+    return prefix.splitlines()[-1].strip() if prefix else ""
+
+
+def _normalize_label(label_line: str) -> tuple[str, bool]:
+    exact = label_line.strip()
+    match = RECOVERABLE_LABEL.fullmatch(exact)
+    normalized = match.group("label").strip() if match else exact
+    return normalized, normalized == exact
+
+
+def _looks_like_file_target(label: str) -> bool:
+    if not label or " " in label:
+        return False
+    path = PurePath(label)
+    return (
+        path.is_absolute()
+        or ".." in path.parts
+        or len(path.parts) > 1
+        or label in PROTECTED_NAMES
+        or label.endswith(PROTECTED_SUFFIXES)
+        or "." in label
+    )
+
+
 def reconstruct(
     starter: Path, output: Path, editable_files: list[str], *, response: str | None = None,
     supplied_dir: Path | None = None, finish_reason: str | None = None,
@@ -66,21 +105,42 @@ def reconstruct(
         raise ReconstructionError("INVALID_MANIFEST", "unsafe editable-file contract")
     shutil.copytree(starter, output, symlinks=False)
     returned: dict[str, bytes] = {}
+    format_valid = True
     if response is not None:
+        if len(response.encode("utf-8")) > MAX_RESPONSE_BYTES:
+            raise ReconstructionError("RESPONSE_TOO_LARGE", "response exceeds safe byte limit")
+        if THINKING_END in response:
+            response = response.rsplit(THINKING_END, 1)[1].lstrip()
+        response = TERMINAL_STOP.sub("", response)
+        fence_count = 0
         for match in FENCE.finditer(response):
-            label = match.group(1).strip().strip("`:")
+            fence_count += 1
+            label, exact = _normalize_label(_preceding_line(response, match.start()))
             name = PurePath(label).as_posix()
-            if name not in allowed or not _safe(name):
+            if name in allowed and _safe(name):
+                target = name
+            elif _safe(name) and PurePath(name).name in allowed:
+                target = PurePath(name).name
+                exact = False
+            elif _looks_like_file_target(name):
                 raise ReconstructionError("UNAUTHORIZED_FILE", label)
-            if name in returned:
-                raise ReconstructionError("DUPLICATE_FILE", name)
-            returned[name] = (match.group(2).rstrip() + "\n").encode()
+            else:
+                format_valid = False
+                continue
+            if target in returned:
+                raise ReconstructionError("DUPLICATE_FILE", target)
+            language = match.group("language").strip().lower()
+            if language not in {"", "cpp", "c++", "cc", "hpp", "h"} or not exact:
+                format_valid = False
+            returned[target] = (match.group("code").rstrip() + "\n").encode()
         if not returned:
             reason = "TRUNCATED" if finish_reason == "length" else "INVALID_FORMAT"
             raise ReconstructionError(reason, "no complete editable file was returned")
         if response.count("```") % 2:
             reason = "TRUNCATED" if finish_reason == "length" else "INCOMPLETE_FENCE"
             raise ReconstructionError(reason, "response contains an incomplete code fence")
+        if fence_count == 0:
+            raise ReconstructionError("INVALID_FORMAT", "response contains no complete code fence")
     elif supplied_dir is not None:
         supplied = _regular_files(supplied_dir)
         unauthorized = sorted(supplied - allowed)
@@ -97,4 +157,6 @@ def reconstruct(
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
     inherited = sorted(allowed - set(returned))
-    return Reconstruction(output, sorted(returned), inherited, tree_sha256(output, allowed))
+    return Reconstruction(
+        output, sorted(returned), inherited, tree_sha256(output, allowed), format_valid
+    )
