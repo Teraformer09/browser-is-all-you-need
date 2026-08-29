@@ -19,11 +19,13 @@ import g03_api_link
 import g04_functional
 import g05_safety
 import g07_portability
+import g09_invalid_attribution
 from receipt import PolicyReceipt, VerificationReceipt, policy
 from sandbox import Limits, result_facts, run_docker, run_host
 
 MANDATORY = ("G01", "G02", "G03", "G04")
 OPTIONAL = ("G05", "G07")
+REPORTING = ("G09",)
 
 
 def sha256(path: Path) -> str:
@@ -333,6 +335,7 @@ def run(args: argparse.Namespace) -> VerificationReceipt:
                     if item.policy in MANDATORY or item.policy in {"PREFLIGHT", "INTEGRITY"}]
         status = ("INVALID" if "INVALID" in statuses else "FAIL" if "FAIL" in statuses
                   else "PASS" if mandatory_pass else "FAIL")
+        receipts.append(g09_invalid_attribution.verify(receipts))
         final = VerificationReceipt(2, manifest["task_id"], manifest_sha,
                                     reconstruction.candidate_sha256, status, receipts,
                                     reconstruction.returned_files, reconstruction.inherited_files,

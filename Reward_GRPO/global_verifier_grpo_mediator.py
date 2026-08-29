@@ -227,11 +227,27 @@ def verify_mediator_receipt(receipt: Mapping[str, Any]) -> dict[str, Any]:
         runner_receipts.append(runner_receipt)
     if runner_receipts:
         terminal = runner_receipts[-1]
-        for key in ("status", "task_id", "manifest_sha256", "candidate_sha256",
-                    "format_valid", "returned_files", "inherited_files", "policies"):
+        for key in ("task_id", "manifest_sha256", "candidate_sha256", "format_valid",
+                    "returned_files", "inherited_files"):
             if value.get(key) != terminal.get(key):
                 raise MediatorError("INVALID_MEDIATOR_RECEIPT",
                                     f"terminal runner field mismatch: {key}")
+        outer_policies, runner_policies = value.get("policies"), terminal.get("policies")
+        if (not isinstance(outer_policies, list) or not isinstance(runner_policies, list)
+                or outer_policies[:-1] != runner_policies):
+            raise MediatorError("INVALID_MEDIATOR_RECEIPT", "terminal runner policies mismatch")
+        g08 = outer_policies[-1] if outer_policies else None
+        if not isinstance(g08, Mapping) or g08.get("policy") != "G08":
+            raise MediatorError("INVALID_MEDIATOR_RECEIPT", "G08 receipt is missing")
+        facts = g08.get("facts")
+        checks = facts.get("checks") if isinstance(facts, Mapping) else None
+        if (not isinstance(checks, Mapping) or set(checks) != {"G08-A", "G08-B", "G08-C", "G08-D"}
+                or facts.get("complete_final_envelope_signed") is not True):
+            raise MediatorError("INVALID_MEDIATOR_RECEIPT", "G08 receipt is malformed")
+        expected_status = ("INVALID" if g08.get("status") == "INVALID" else
+                           "FAIL" if g08.get("status") == "FAIL" else terminal.get("status"))
+        if value.get("status") != expected_status:
+            raise MediatorError("INVALID_MEDIATOR_RECEIPT", "G08 terminal status mismatch")
     elif value.get("status") != "FAIL":
         raise MediatorError("INVALID_MEDIATOR_RECEIPT",
                             "receipt without a runner result must be FAIL")
@@ -260,6 +276,54 @@ class PromptEnvelope:
         """Canonical serialized prompt retained for CLI/backward compatibility."""
         return json.dumps(self.messages, sort_keys=True, ensure_ascii=False,
                           separators=(",", ":"))
+
+
+def _metadata_sha256(metadata: Mapping[str, Any]) -> str:
+    return _sha256_bytes(json.dumps(dict(metadata), sort_keys=True, ensure_ascii=False,
+                                    separators=(",", ":")).encode("utf-8"))
+
+
+def _g08_policy(
+    binding: BundleBinding, metadata: Mapping[str, Any], actual_prompt_sha256: str,
+    metadata_before_sha256: str, metadata_after_sha256: str,
+) -> dict[str, Any]:
+    """Build the independently signed G08-A..D mediator policy receipt."""
+    expected = build_prompt(binding).metadata
+    extra, missing = sorted(set(metadata) - set(expected)), sorted(set(expected) - set(metadata))
+    mismatched = sorted(key for key in set(expected) & set(metadata)
+                        if metadata.get(key) != expected[key])
+    prompt_ok = actual_prompt_sha256 == expected["prompt_sha256"]
+    allowlist_ok = not extra and not missing and not mismatched
+    immutable = metadata_before_sha256 == metadata_after_sha256
+    checks = {
+        "G08-A": {"status": "PASS" if prompt_ok else "INVALID",
+                  "reason": "PROMPT_SHA256_BOUND" if prompt_ok else "PROMPT_BINDING_MISMATCH"},
+        "G08-B": {"status": "PASS" if allowlist_ok else "INVALID",
+                  "reason": ("METADATA_ALLOWLISTED" if allowlist_ok else
+                             "PROMPT_BINDING_MISMATCH" if "prompt_sha256" in mismatched else
+                             "NON_ALLOWLISTED_METADATA"),
+                  "extra_fields": extra, "missing_fields": missing,
+                  "mismatched_fields": mismatched},
+        "G08-C": {"status": "PASS" if immutable else "INVALID",
+                  "reason": "METADATA_IMMUTABLE" if immutable else "METADATA_MUTATED"},
+        "G08-D": {"status": "PASS", "reason": "FINAL_ENVELOPE_CANONICALLY_SIGNED"},
+    }
+    statuses = {value["status"] for value in checks.values()}
+    status = "INVALID" if "INVALID" in statuses else "FAIL" if "FAIL" in statuses else "PASS"
+    reason = next((value["reason"] for value in checks.values()
+                   if value["status"] != "PASS"), "MEDIATOR_CONTRACT_INTEGRITY_VERIFIED")
+    return {
+        "policy": "G08", "status": status, "reason": reason,
+        "facts": {
+            "checks": checks,
+            "expected_prompt_sha256": expected["prompt_sha256"],
+            "actual_prompt_sha256": actual_prompt_sha256,
+            "metadata_before_sha256": metadata_before_sha256,
+            "metadata_after_sha256": metadata_after_sha256,
+            "complete_final_envelope_signed": True,
+        },
+        "artifacts": {},
+    }
 
 
 class TaskBundleRegistry:
@@ -385,6 +449,14 @@ def _policy_map(receipt: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
     }
 
 
+def _invalid_reason(receipt: Mapping[str, Any]) -> str:
+    return next(
+        (str(item.get("reason")) for item in receipt.get("policies", [])
+         if isinstance(item, Mapping) and item.get("status") == "INVALID"),
+        "verifier_invalid",
+    )
+
+
 def _validated_reward_projection(manifest: Mapping[str, Any]) -> dict[str, Any] | None:
     value = manifest.get("reward_projection")
     if value is None:
@@ -479,6 +551,8 @@ def _mediator_envelope(
     binding: BundleBinding, attempts: list[dict[str, Any]], *,
     retry_token: str, exhausted: bool, terminal: Mapping[str, Any] | None,
     reconstruction_reason: str | None = None,
+    metadata: Mapping[str, Any], actual_prompt_sha256: str,
+    metadata_before_sha256: str, metadata_after_sha256: str,
 ) -> dict[str, Any]:
     terminal_fields = {
         "status": "FAIL",
@@ -496,6 +570,11 @@ def _mediator_envelope(
             for key in ("status", "task_id", "manifest_sha256", "candidate_sha256",
                         "format_valid", "returned_files", "inherited_files", "policies")
         })
+    g08 = _g08_policy(binding, metadata, actual_prompt_sha256,
+                      metadata_before_sha256, metadata_after_sha256)
+    terminal_fields["policies"] = [*terminal_fields["policies"], g08]
+    if g08["status"] in {"FAIL", "INVALID"}:
+        terminal_fields["status"] = g08["status"]
     envelope: dict[str, Any] = {
         "schema_version": MEDIATOR_RECEIPT_SCHEMA_VERSION,
         "kind": MEDIATOR_RECEIPT_KIND,
@@ -523,7 +602,8 @@ def _evaluate(
     binding: BundleBinding, *, response: str | None = None, candidate: Path | None = None,
     finish_reason: str | None = None, executor: str = "docker", invalid_retries: int = 1,
     retry_token: str | None = None, attempt_offset: int = 0,
-    retry_limit: int | None = None,
+    retry_limit: int | None = None, metadata: Mapping[str, Any] | None = None,
+    actual_prompt_sha256: str | None = None,
 ) -> dict[str, Any]:
     if executor not in {"docker", "host"}:
         raise MediatorError("INVALID_EXECUTOR", executor)
@@ -533,6 +613,10 @@ def _evaluate(
     reconstruction_module = importlib.import_module("candidate_reconstruction")
     receipt_module = _set2_receipt_module()
     candidate_path = candidate.resolve(strict=True) if candidate is not None else None
+    prompt_envelope = build_prompt(binding)
+    metadata_value = metadata if metadata is not None else prompt_envelope.metadata
+    prompt_sha = actual_prompt_sha256 or prompt_envelope.metadata["prompt_sha256"]
+    metadata_before = _metadata_sha256(metadata_value)
     token = retry_token or _default_retry_token(binding, response, candidate_path)
     attempts: list[dict[str, Any]] = []
     terminal: Mapping[str, Any] | None = None
@@ -562,7 +646,9 @@ def _evaluate(
                 })
                 return _mediator_envelope(
                     binding, attempts, retry_token=token, exhausted=False, terminal=None,
-                    reconstruction_reason=error.reason,
+                    reconstruction_reason=error.reason, metadata=metadata_value,
+                    actual_prompt_sha256=prompt_sha, metadata_before_sha256=metadata_before,
+                    metadata_after_sha256=_metadata_sha256(metadata_value),
                 )
             receipt_path = output / "verification_receipt.json"
             try:
@@ -596,6 +682,9 @@ def _evaluate(
     )
     return _mediator_envelope(
         binding, attempts, retry_token=token, exhausted=exhausted, terminal=terminal,
+        metadata=metadata_value, actual_prompt_sha256=prompt_sha,
+        metadata_before_sha256=metadata_before,
+        metadata_after_sha256=_metadata_sha256(metadata_value),
     )
 
 
@@ -603,11 +692,13 @@ def evaluate_response(
     binding: BundleBinding, response: str, *, finish_reason: str | None = None,
     executor: str = "docker", invalid_retries: int = 1, retry_token: str | None = None,
     attempt_offset: int = 0, retry_limit: int | None = None,
+    metadata: Mapping[str, Any] | None = None, actual_prompt_sha256: str | None = None,
 ) -> dict[str, Any]:
     return _evaluate(
         binding, response=response, finish_reason=finish_reason, executor=executor,
         invalid_retries=invalid_retries, retry_token=retry_token,
         attempt_offset=attempt_offset, retry_limit=retry_limit,
+        metadata=metadata, actual_prompt_sha256=actual_prompt_sha256,
     )
 
 
@@ -828,14 +919,9 @@ def score_sample(
             raise MediatorError("MISSING_TASK_BUNDLE_ID", "rollout lacks task_bundle_id")
         binding = registry.resolve(task_bundle_id)
         envelope = build_prompt(binding)
-        for key, expected in envelope.metadata.items():
-            if metadata.get(key) != expected:
-                raise MediatorError("PROMPT_BINDING_MISMATCH", key)
         actual_prompt_sha = _sample_prompt_sha256(
             sample, expected_messages=envelope.messages, runtime_args=runtime_args,
         )
-        if actual_prompt_sha != envelope.metadata["prompt_sha256"]:
-            raise MediatorError("PROMPT_BINDING_MISMATCH", "rollout prompt bytes")
         response = _sample_response(sample)
         token = retry_token or _sample_retry_token(
             sample, binding, envelope.metadata["prompt_sha256"], response,
@@ -849,6 +935,7 @@ def score_sample(
             retry_token=token,
             attempt_offset=retry_attempt,
             retry_limit=global_retry_limit,
+            metadata=metadata, actual_prompt_sha256=actual_prompt_sha,
         )
         verify_mediator_receipt(receipt)
         projection = receipt_to_reward(receipt, format_valid=receipt.get("format_valid", True))
@@ -870,7 +957,7 @@ def score_sample(
             "retry_attempt": retry_attempt,
             "worker_identity": worker_identities[-1] if worker_identities else None,
             "reason": (
-                "verifier_invalid"
+                _invalid_reason(receipt)
                 if not projection["valid"]
                 else str(receipt.get("reason", receipt["status"])).lower()
             ),

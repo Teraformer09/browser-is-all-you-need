@@ -39,11 +39,11 @@ def reasons(receipt):
     return {item.policy: (item.status, item.reason) for item in receipt.policies}
 
 
-def test_package_contains_exactly_ten_portable_python_modules() -> None:
+def test_package_contains_expected_portable_python_modules() -> None:
     assert sorted(path.name for path in PACKAGE.glob("*.py")) == [
         "candidate_reconstruction.py", "g01_integrity.py", "g02_build.py",
         "g03_api_link.py", "g04_functional.py", "g05_safety.py",
-        "g07_portability.py", "receipt.py", "runner.py", "sandbox.py",
+        "g07_portability.py", "g09_invalid_attribution.py", "receipt.py", "runner.py", "sandbox.py",
     ]
 
 
@@ -59,6 +59,7 @@ def test_reference_passes_g01_through_g07(tmp_path: Path) -> None:
         "G04": ("PASS", "FUNCTIONAL_PASS"),
         "G05": ("PASS", "SAFETY_PASS"),
         "G07": ("PASS", "PORTABILITY_PASS"),
+        "G09": ("PASS", "NO_FAILURE_TO_ATTRIBUTE"),
     }
 
 
