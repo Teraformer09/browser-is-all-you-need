@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "app_id",
+    "version",
+    "package",
+    "contract_version",
+    "ui_ref",
+    "actions_ref",
+    "state_ref"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "app_id": {
+      "const": "uber_clone"
+    },
+    "version": {
+      "const": 1
+    },
+    "package": {
+      "const": "com.primeintellect.dummyrl"
+    },
+    "contract_version": {
+      "const": "uber031-evidence-v1"
+    },
+    "ui_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "actions_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state_ref": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false
+}

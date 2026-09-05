@@ -1,0 +1,35 @@
+<resources>
+    <item name="search_input" type="id" />
+    <item name="search_button" type="id" />
+    <item name="search_result" type="id" />
+    <item name="name_input" type="id" />
+    <item name="email_input" type="id" />
+    <item name="submit_button" type="id" />
+    <item name="clear_button" type="id" />
+    <item name="status_text" type="id" />
+    <item name="debug_state_text" type="id" />
+    <item name="ride_progress_text" type="id" />
+    <item name="ride_type_ride" type="id" />
+    <item name="ride_type_reserve" type="id" />
+    <item name="ride_type_premium" type="id" />
+    <item name="destination_search_button" type="id" />
+    <item name="route_summary_text" type="id" />
+    <item name="ride_debug_state_text" type="id" />
+    <item name="pickup_input" type="id" />
+    <item name="drop_input" type="id" />
+    <item name="location_suggestion_1" type="id" />
+    <item name="location_suggestion_2" type="id" />
+    <item name="ride_option_mini" type="id" />
+    <item name="ride_option_sedan" type="id" />
+    <item name="ride_option_premium" type="id" />
+    <item name="cheapest_badge" type="id" />
+    <item name="apply_coupon_button" type="id" />
+    <item name="coupon_input" type="id" />
+    <item name="coupon_apply_button" type="id" />
+    <item name="payment_cash" type="id" />
+    <item name="payment_card" type="id" />
+    <item name="payment_upi" type="id" />
+    <item name="confirm_ride_button" type="id" />
+    <item name="cancel_ride_button" type="id" />
+    <item name="final_status_text" type="id" />
+</resources>

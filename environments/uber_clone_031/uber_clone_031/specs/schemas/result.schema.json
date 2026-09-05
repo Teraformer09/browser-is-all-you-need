@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "verifier_id",
+    "status",
+    "reward",
+    "reason_code",
+    "failure_origin",
+    "evidence_refs"
+  ],
+  "properties": {
+    "verifier_id": {
+      "type": "string",
+      "pattern": "^(V[12]|G[1-4]|S1|T[1-7])\\.V[1-5]$"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "INVALID"
+      ]
+    },
+    "reward": {
+      "enum": [
+        -1,
+        0,
+        1
+      ]
+    },
+    "reason_code": {
+      "type": "string",
+      "minLength": 1
+    },
+    "failure_origin": {
+      "enum": [
+        "none",
+        "agent",
+        "pipeline"
+      ]
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "observed_value": {},
+    "expected_value": {}
+  },
+  "additionalProperties": false
+}

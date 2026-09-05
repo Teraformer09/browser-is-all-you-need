@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "permitted_actions": [
+    "tap_element",
+    "type_text",
+    "press_back",
+    "swipe",
+    "wait",
+    "finish"
+  ],
+  "prohibited_actions": [
+    "press_home",
+    "tap_coordinates"
+  ],
+  "allowed_input_fields": [
+    "pickup_input",
+    "drop_input"
+  ],
+  "schema": "MobileAction",
+  "repair_actions": false,
+  "require_explicit_scrolling": true
+}

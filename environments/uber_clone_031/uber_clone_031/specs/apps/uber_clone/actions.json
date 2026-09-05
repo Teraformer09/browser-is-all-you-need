@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "native_prerequisites": {
+    "destination.search": 1,
+    "cab.mini": 2,
+    "cab.sedan": 2,
+    "cab.premium": 2,
+    "payment.cash": 3,
+    "payment.card": 3,
+    "payment.upi": 3,
+    "booking.confirm": 4
+  },
+  "rejected_actions_mutate_business_state": false,
+  "early_finish": "reject_and_continue",
+  "upstream_edits": "invalidate_dependent_selections",
+  "hard_contract_for_eval": [
+    "no_invalid_action",
+    "no_forbidden_action",
+    "sequence_clean",
+    "within_step_budget"
+  ]
+}

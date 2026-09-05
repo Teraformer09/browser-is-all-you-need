@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "task_id",
+    "app_ref",
+    "topic_ref",
+    "scoring_ref",
+    "max_steps",
+    "expected",
+    "required_policy_ids",
+    "hard_constraints",
+    "assessment_point"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "task_id": {
+      "const": "uber_clone_031"
+    },
+    "app_ref": {
+      "const": "uber_clone@1"
+    },
+    "topic_ref": {
+      "const": "ride_booking@1"
+    },
+    "scoring_ref": {
+      "const": "ternary_14x5_v1"
+    },
+    "max_steps": {
+      "const": 12
+    },
+    "expected": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "required": [
+        "pickup",
+        "ride_type",
+        "destination",
+        "cab_type",
+        "payment_method",
+        "cancel_after_assignment"
+      ],
+      "properties": {
+        "pickup": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ride_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "destination": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cab_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payment_method": {
+          "enum": [
+            "card",
+            "cash",
+            "upi"
+          ]
+        },
+        "cancel_after_assignment": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "required_policy_ids": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "V1",
+          "V2",
+          "G1",
+          "G2",
+          "G3",
+          "G4",
+          "S1",
+          "T1",
+          "T2",
+          "T3",
+          "T4",
+          "T5",
+          "T6",
+          "T7"
+        ]
+      },
+      "minItems": 14,
+      "maxItems": 14,
+      "uniqueItems": true
+    },
+    "hard_constraints": {
+      "const": [
+        "sequence_clean",
+        "no_forbidden_action",
+        "no_invalid_action"
+      ]
+    },
+    "assessment_point": {
+      "const": "actor_stop"
+    }
+  },
+  "additionalProperties": false
+}

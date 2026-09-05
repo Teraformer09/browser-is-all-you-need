@@ -1,0 +1,5 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.primeintellect.dummyrl.contracttest">
+  <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="33"/>
+  <application android:label="Ride contract tests"/>
+  <instrumentation android:name=".ContractInstrumentation" android:targetPackage="com.primeintellect.dummyrl" />
+</manifest>

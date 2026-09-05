@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "required_capabilities": [
+    "adb",
+    "ui_dump",
+    "preferences",
+    "mutation_log",
+    "runtime_probe"
+  ],
+  "optional_capabilities": [
+    "screenshot",
+    "screenshot_ocr"
+  ],
+  "same_episode_required": true,
+  "ui_must_be_fresh": true,
+  "missing_evidence_status": "INVALID",
+  "missing_optional_screenshot_alone_invalidates_episode": false
+}

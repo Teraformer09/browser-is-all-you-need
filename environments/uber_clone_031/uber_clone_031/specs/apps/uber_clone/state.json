@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "fields": {
+    "episode_id": "string",
+    "ride_pickup": "string",
+    "ride_type": "string",
+    "ride_drop": "string",
+    "selected_ride": "string",
+    "payment": "string",
+    "journey_stage": "integer_string",
+    "ride_confirmed": "boolean_string",
+    "ride_cancelled": "boolean_string",
+    "screen": "string",
+    "sequence_error": "boolean_string",
+    "ride_action_sequence": "integer_string"
+  },
+  "legitimate_unset_value": "",
+  "missing_field_is_unreadable": true,
+  "preferences": "shared_prefs/dummy_state.xml",
+  "mutations": "files/ride_mutations.jsonl",
+  "runtime_probe": "content://com.primeintellect.dummyrl.verifier/state"
+}

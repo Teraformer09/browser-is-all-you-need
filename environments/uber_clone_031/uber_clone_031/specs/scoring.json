@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "scoring_id": "ternary_14x5_v1",
+  "status_to_reward": {
+    "PASS": 1,
+    "INVALID": 0,
+    "FAIL": -1
+  },
+  "required_policy_count": 14,
+  "required_verifier_count": 5,
+  "base_score": 0.5,
+  "increment_per_pass": 0.1,
+  "pass_threshold": 0.7,
+  "comparison": ">=",
+  "all_invalid_reward": 0,
+  "aggregation": "any_fail_then_any_invalid_then_pass",
+  "episode_reward_frequency": "once_at_actor_stop",
+  "progress_is_diagnostic": true
+}

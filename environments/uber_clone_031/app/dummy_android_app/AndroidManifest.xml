@@ -1,0 +1,23 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.primeintellect.dummyrl">
+    <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="34" />
+
+    <application
+        android:theme="@style/AppTheme"
+        android:label="Dummy RL App"
+        android:debuggable="true"
+        android:allowBackup="false"
+        android:usesCleartextTraffic="true">
+        <provider android:name=".VerifierStateProvider"
+            android:authorities="com.primeintellect.dummyrl.verifier"
+            android:exported="true" android:permission="android.permission.DUMP" />
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

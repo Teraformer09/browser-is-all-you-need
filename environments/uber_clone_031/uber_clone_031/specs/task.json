@@ -1,0 +1,67 @@
+{
+  "task_id": "uber_clone_031",
+  "benchmark_family": "uber_clone",
+  "task_type": "ride_booking",
+  "policy_hint": "scripted",
+  "tags": [
+    "benchmark",
+    "ride",
+    "uber_clone"
+  ],
+  "app": {
+    "package": "com.primeintellect.dummyrl",
+    "apk_path": "app/dummy_android_app/build/out/dummy-rl-app.apk"
+  },
+  "setup": {
+    "start_screen": "ride",
+    "difficulty": "medium"
+  },
+  "goal": "Open the app, select the Premium ride type, search for \"City Centre\", choose the Premium cab, pay with CARD, and book the ride.",
+  "max_steps": 12,
+  "success": {
+    "type": "registered_check",
+    "check": "ride_booking_exact",
+    "threshold": 1.0
+  },
+  "reward": {
+    "mode": "fractional"
+  },
+  "parameters": {
+    "pickup": "Airport Road",
+    "ride_type": "Premium",
+    "destination": "City Centre",
+    "selected_ride": "Premium",
+    "payment": "card",
+    "coupon": "",
+    "cancel_after_assignment": false,
+    "seed": 3030
+  },
+  "verifier_contract": {
+    "schema_version": "1.0",
+    "app_ref": "uber_clone@1",
+    "topic_ref": "ride_booking@1",
+    "scoring_ref": "ternary_14x5_v1",
+    "required_policy_ids": [
+      "V1",
+      "V2",
+      "G1",
+      "G2",
+      "G3",
+      "G4",
+      "S1",
+      "T1",
+      "T2",
+      "T3",
+      "T4",
+      "T5",
+      "T6",
+      "T7"
+    ],
+    "hard_constraints": [
+      "sequence_clean",
+      "no_forbidden_action",
+      "no_invalid_action"
+    ],
+    "assessment_point": "actor_stop"
+  }
+}

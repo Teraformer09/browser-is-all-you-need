@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "semantic_targets": {
+    "pickup.input": "pickup_input",
+    "ride_type.ride": "ride_type_ride",
+    "ride_type.reserve": "ride_type_reserve",
+    "ride_type.premium": "ride_type_premium",
+    "destination.input": "drop_input",
+    "destination.search": "destination_search_button",
+    "destination.airport": "location_suggestion_1",
+    "destination.city_center": "location_suggestion_2",
+    "cab.mini": "ride_option_mini",
+    "cab.sedan": "ride_option_sedan",
+    "cab.premium": "ride_option_premium",
+    "payment.cash": "payment_cash",
+    "payment.card": "payment_card",
+    "payment.upi": "payment_upi",
+    "booking.confirm": "confirm_ride_button",
+    "booking.cancel": "cancel_ride_button"
+  },
+  "summary_node": "route_summary_text",
+  "terminal_status_node": "final_status_text",
+  "progress_node": "ride_progress_text",
+  "coordinates_are_identity": false,
+  "ocr_min_confidence": 90,
+  "ocr_confidence_note": "Conservative evidence-readability floor, not a policy reward weight or calibrated probability."
+}

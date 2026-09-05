@@ -1,0 +1,13 @@
+.env
+.env.*
+.prime/
+.deps/
+artifacts/
+outputs/
+__pycache__/
+*.pyc
+*.keystore
+*.idsig
+**/build/
+dist/
+.git/

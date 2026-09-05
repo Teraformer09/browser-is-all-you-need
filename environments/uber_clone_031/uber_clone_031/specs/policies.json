@@ -1,0 +1,397 @@
+{
+  "schema_version": "1.0",
+  "policies": [
+    {
+      "policy_id": "V1",
+      "name": "Specification and capability readiness",
+      "scope": "readiness",
+      "verifiers": [
+        {
+          "id": "V1.V1",
+          "implementation": "schema_and_capabilities"
+        },
+        {
+          "id": "V1.V2",
+          "implementation": "yaml_and_capability_receipts"
+        },
+        {
+          "id": "V1.V3",
+          "implementation": "registry_and_live_contract"
+        },
+        {
+          "id": "V1.V4",
+          "implementation": "installed_app_and_tools"
+        },
+        {
+          "id": "V1.V5",
+          "implementation": "runtime_schema_and_capabilities"
+        }
+      ],
+      "complete_policy_claim_required": true
+    },
+    {
+      "policy_id": "V2",
+      "name": "Episode and evidence integrity",
+      "scope": "episode_history",
+      "verifiers": [
+        {
+          "id": "V2.V1",
+          "implementation": "preference_episode_chain"
+        },
+        {
+          "id": "V2.V2",
+          "implementation": "artifact_hash_chain"
+        },
+        {
+          "id": "V2.V3",
+          "implementation": "mutation_episode_chain"
+        },
+        {
+          "id": "V2.V4",
+          "implementation": "runtime_snapshot_chain"
+        },
+        {
+          "id": "V2.V5",
+          "implementation": "capture_and_receipt_alignment"
+        }
+      ],
+      "complete_policy_claim_required": true
+    },
+    {
+      "policy_id": "G1",
+      "name": "Action-format compliance",
+      "scope": "episode_history",
+      "verifiers": [
+        {
+          "id": "G1.V1",
+          "implementation": "mobile_action_schema"
+        },
+        {
+          "id": "G1.V2",
+          "implementation": "jsonschema_action_schema"
+        },
+        {
+          "id": "G1.V3",
+          "implementation": "manual_argument_contract"
+        },
+        {
+          "id": "G1.V4",
+          "implementation": "canonical_roundtrip"
+        },
+        {
+          "id": "G1.V5",
+          "implementation": "receipt_schema_reconciliation"
+        }
+      ],
+      "complete_policy_claim_required": true
+    },
+    {
+      "policy_id": "G2",
+      "name": "Tool-permission compliance",
+      "scope": "episode_history",
+      "verifiers": [
+        {
+          "id": "G2.V1",
+          "implementation": "raw_tool_allowlist"
+        },
+        {
+          "id": "G2.V2",
+          "implementation": "canonical_tool_allowlist"
+        },
+        {
+          "id": "G2.V3",
+          "implementation": "declarative_permission_rules"
+        },
+        {
+          "id": "G2.V4",
+          "implementation": "receipt_permission_audit"
+        },
+        {
+          "id": "G2.V5",
+          "implementation": "forbidden_trace_reconciliation"
+        }
+      ],
+      "complete_policy_claim_required": true
+    },
+    {
+      "policy_id": "G3",
+      "name": "UI-target availability",
+      "scope": "episode_history",
+      "verifiers": [
+        {
+          "id": "G3.V1",
+          "implementation": "xml_target_interactability"
+        },
+        {
+          "id": "G3.V2",
+          "implementation": "observation_target_interactability"
+        },
+        {
+          "id": "G3.V3",
+          "implementation": "bounds_and_target_resolution"
+        },
+        {
+          "id": "G3.V4",
+          "implementation": "receipt_target_reconciliation"
+        },
+        {
+          "id": "G3.V5",
+          "implementation": "before_state_target_contract"
+        }
+      ],
+      "complete_policy_claim_required": true
+    },
+    {
+      "policy_id": "G4",
+      "name": "Tool-execution correctness",
+      "scope": "episode_history",
+      "verifiers": [
+        {
+          "id": "G4.V1",
+          "implementation": "receipt_execution"
+        },
+        {
+          "id": "G4.V2",
+          "implementation": "adb_command_completion"
+        },
+        {
+          "id": "G4.V3",
+          "implementation": "post_action_receipt_alignment"
+        },
+        {
+          "id": "G4.V4",
+          "implementation": "execution_error_audit"
+        },
+        {
+          "id": "G4.V5",
+          "implementation": "transport_and_effect_reconciliation"
+        }
+      ],
+      "complete_policy_claim_required": true
+    },
+    {
+      "policy_id": "S1",
+      "name": "Semantic-target correctness",
+      "scope": "episode_history",
+      "verifiers": [
+        {
+          "id": "S1.V1",
+          "implementation": "resource_semantic_map"
+        },
+        {
+          "id": "S1.V2",
+          "implementation": "declared_operation_lookup"
+        },
+        {
+          "id": "S1.V3",
+          "implementation": "post_state_semantic_effect"
+        },
+        {
+          "id": "S1.V4",
+          "implementation": "mutation_semantic_replay"
+        },
+        {
+          "id": "S1.V5",
+          "implementation": "runtime_semantic_effect"
+        }
+      ],
+      "complete_policy_claim_required": true
+    },
+    {
+      "policy_id": "T1",
+      "name": "Pickup correctness",
+      "scope": "episode_final",
+      "verifiers": [
+        {
+          "id": "T1.V1",
+          "implementation": "pickup_from_preferences"
+        },
+        {
+          "id": "T1.V2",
+          "implementation": "pickup_from_accessibility"
+        },
+        {
+          "id": "T1.V3",
+          "implementation": "pickup_from_screenshot"
+        },
+        {
+          "id": "T1.V4",
+          "implementation": "pickup_from_mutations"
+        },
+        {
+          "id": "T1.V5",
+          "implementation": "pickup_from_runtime"
+        }
+      ],
+      "complete_policy_claim_required": true
+    },
+    {
+      "policy_id": "T2",
+      "name": "Ride-type correctness",
+      "scope": "episode_final",
+      "verifiers": [
+        {
+          "id": "T2.V1",
+          "implementation": "ride_type_from_preferences"
+        },
+        {
+          "id": "T2.V2",
+          "implementation": "ride_type_from_accessibility"
+        },
+        {
+          "id": "T2.V3",
+          "implementation": "ride_type_from_screenshot"
+        },
+        {
+          "id": "T2.V4",
+          "implementation": "ride_type_from_mutations"
+        },
+        {
+          "id": "T2.V5",
+          "implementation": "ride_type_from_runtime"
+        }
+      ],
+      "complete_policy_claim_required": true
+    },
+    {
+      "policy_id": "T3",
+      "name": "Destination correctness",
+      "scope": "episode_final",
+      "verifiers": [
+        {
+          "id": "T3.V1",
+          "implementation": "destination_from_preferences"
+        },
+        {
+          "id": "T3.V2",
+          "implementation": "destination_from_accessibility"
+        },
+        {
+          "id": "T3.V3",
+          "implementation": "destination_from_screenshot"
+        },
+        {
+          "id": "T3.V4",
+          "implementation": "destination_from_mutations"
+        },
+        {
+          "id": "T3.V5",
+          "implementation": "destination_from_runtime"
+        }
+      ],
+      "complete_policy_claim_required": true
+    },
+    {
+      "policy_id": "T4",
+      "name": "Cab correctness",
+      "scope": "episode_final",
+      "verifiers": [
+        {
+          "id": "T4.V1",
+          "implementation": "cab_from_preferences"
+        },
+        {
+          "id": "T4.V2",
+          "implementation": "cab_from_accessibility"
+        },
+        {
+          "id": "T4.V3",
+          "implementation": "cab_from_screenshot"
+        },
+        {
+          "id": "T4.V4",
+          "implementation": "cab_from_mutations"
+        },
+        {
+          "id": "T4.V5",
+          "implementation": "cab_from_runtime"
+        }
+      ],
+      "complete_policy_claim_required": true
+    },
+    {
+      "policy_id": "T5",
+      "name": "Payment-method correctness",
+      "scope": "episode_final",
+      "verifiers": [
+        {
+          "id": "T5.V1",
+          "implementation": "payment_from_preferences"
+        },
+        {
+          "id": "T5.V2",
+          "implementation": "payment_from_accessibility"
+        },
+        {
+          "id": "T5.V3",
+          "implementation": "payment_from_screenshot"
+        },
+        {
+          "id": "T5.V4",
+          "implementation": "payment_from_mutations"
+        },
+        {
+          "id": "T5.V5",
+          "implementation": "payment_from_runtime"
+        }
+      ],
+      "complete_policy_claim_required": true
+    },
+    {
+      "policy_id": "T6",
+      "name": "Booking completion",
+      "scope": "episode_final",
+      "verifiers": [
+        {
+          "id": "T6.V1",
+          "implementation": "booking_from_preferences"
+        },
+        {
+          "id": "T6.V2",
+          "implementation": "booking_from_accessibility"
+        },
+        {
+          "id": "T6.V3",
+          "implementation": "booking_from_screenshot"
+        },
+        {
+          "id": "T6.V4",
+          "implementation": "booking_from_mutations"
+        },
+        {
+          "id": "T6.V5",
+          "implementation": "booking_from_runtime"
+        }
+      ],
+      "complete_policy_claim_required": true
+    },
+    {
+      "policy_id": "T7",
+      "name": "Required action-contract compliance",
+      "scope": "episode_history",
+      "verifiers": [
+        {
+          "id": "T7.V1",
+          "implementation": "contract_from_receipts"
+        },
+        {
+          "id": "T7.V2",
+          "implementation": "contract_from_action_replay"
+        },
+        {
+          "id": "T7.V3",
+          "implementation": "contract_from_mutations"
+        },
+        {
+          "id": "T7.V4",
+          "implementation": "contract_from_runtime_history"
+        },
+        {
+          "id": "T7.V5",
+          "implementation": "contract_from_transport_audit"
+        }
+      ],
+      "complete_policy_claim_required": true
+    }
+  ]
+}
