@@ -1,0 +1,17 @@
+artifacts/
+build/
+.gradle/
+.venv*/
+.tools/
+.deps/
+.prime/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+local.properties
+.env
+.env.*
+*.keystore
+*.jks
+*.idsig

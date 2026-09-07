@@ -1,0 +1,14 @@
+{
+  "status_to_reward": {
+    "PASS": 1,
+    "INVALID": 0,
+    "FAIL": -1
+  },
+  "required_policy_count": 14,
+  "required_verifier_count": 5,
+  "base_score": 0.5,
+  "increment_per_pass": 0.1,
+  "pass_threshold": 0.7,
+  "comparison": ">=",
+  "aggregation": "any_fail_then_any_invalid_then_pass"
+}

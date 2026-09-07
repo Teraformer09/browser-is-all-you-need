@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Offline simulated catalog: no Internet, accounts, payments or checkout. -->
+    <application android:theme="@style/Theme.DemoCart" android:label="DemoCart"
+        android:allowBackup="false" android:supportsRtl="true">
+        <activity android:name=".MainActivity" android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <provider android:name=".VerifierStateProvider"
+            android:authorities="com.primeintellect.shoppingdemo.verifier"
+            android:exported="true" android:permission="android.permission.DUMP"/>
+    </application>
+</manifest>

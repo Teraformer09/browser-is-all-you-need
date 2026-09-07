@@ -1,0 +1,30 @@
+plugins { id "com.android.application" }
+android {
+    namespace "com.primeintellect.paymentdemo"
+    compileSdk 34
+    defaultConfig {
+        applicationId "com.primeintellect.paymentdemo"
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName "0.1.0"
+        testInstrumentationRunner "com.primeintellect.paymentdemo.PaymentUiTest"
+    }
+    sourceSets {
+        main {
+            manifest.srcFile "../AndroidManifest.xml"
+            java.srcDirs = ["../src"]
+            res.srcDirs = ["../res"]
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    buildTypes { release { minifyEnabled false } }
+}
+dependencies {
+    implementation "com.google.android.material:material:1.12.0"
+    implementation "androidx.appcompat:appcompat:1.7.0"
+    testImplementation "junit:junit:4.13.2"
+}

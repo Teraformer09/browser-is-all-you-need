@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "task_id": "payment_transfer_001",
+  "package": "com.primeintellect.paymentdemo",
+  "goal": "Send a simulated INR 500.00 payment to Alex from the mock account ending 1234. Add the note Lunch, review the details, and confirm exactly once.",
+  "expected": {
+    "recipient_id": "alex",
+    "amount_paise": 50000,
+    "currency": "INR",
+    "account_id": "account_1234",
+    "note": "Lunch"
+  },
+  "max_steps": 16,
+  "simulated": true
+}

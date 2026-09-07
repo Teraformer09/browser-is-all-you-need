@@ -1,0 +1,27 @@
+[project]
+name = "payment-transfer-001"
+version = "0.3.0"
+description = "Simulated Material Android payment task: 14 policies, 70 evidence-bound verifiers and per-action screenshots."
+readme = "README.md"
+tags = ["android", "mobile", "payment", "single-task", "eval"]
+requires-python = ">=3.11"
+dependencies = ["verifiers==0.3.1", "datasets==5.0.1"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["payment_transfer_001"]
+
+[tool.hatch.build.targets.sdist]
+include = ["payment_transfer_001", "scripts", "tests", "README.md", "IMPLEMENTATION_LOG.md", "pyproject.toml",
+ "app/dummy_android_app/src", "app/dummy_android_app/res", "app/dummy_android_app/AndroidManifest.xml",
+ "app/dummy_android_app/build.gradle", "app/dummy_android_app/settings.gradle", "app/dummy_android_app/gradle.properties",
+ "app/dummy_android_app/gradle", "app/dummy_android_app/gradlew", "app/dummy_android_app/gradlew.bat",
+ "app/dummy_android_app/app/build.gradle", "app/dummy_android_app/app/src"]
+
+[tool.verifiers.eval]
+num_examples = 1
+rollouts_per_example = 1
+max_concurrent = 1

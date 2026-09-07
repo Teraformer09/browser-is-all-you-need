@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "package": "com.primeintellect.paymentdemo",
+  "state_schema_version": 1,
+  "simulated": true,
+  "state_provider": "content://com.primeintellect.paymentdemo.verifier/state",
+  "preferences": "payment_state.xml",
+  "state_fields": [
+    "episode_id",
+    "recipient_id",
+    "amount_paise",
+    "currency",
+    "account_id",
+    "note",
+    "revision",
+    "reviewed_revision",
+    "status",
+    "transactions",
+    "events"
+  ],
+  "evidence_channels": [
+    "persisted_state",
+    "runtime_probe",
+    "journal_replay",
+    "accessibility",
+    "screenshot_ocr"
+  ],
+  "correlation_notice": "Rendered and persisted channels can share state; five strategies are not independent proofs."
+}

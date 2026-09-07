@@ -1,0 +1,15 @@
+<resources>
+    <style name="Theme.DemoCart" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">#FFD814</item>
+        <item name="colorOnPrimary">#17212B</item>
+        <item name="colorSecondary">#007185</item>
+        <item name="colorOnSurface">#15232D</item>
+        <item name="colorSurface">#FFFFFF</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#131921</item>
+        <item name="android:navigationBarColor">#FFFFFF</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowBackground">#EAEDED</item>
+    </style>
+</resources>

@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "task_id": "amazon_cart_001",
+  "package": "com.primeintellect.shoppingdemo",
+  "goal": "Search separately for Nimbus Wireless Headphones, Trail Steel Water Bottle, and Metro Laptop Backpack. Add exactly one of each to the cart, with no other products, then open the cart. Do not check out or place an order.",
+  "simulated": true,
+  "currency": "INR",
+  "expected_items": [
+    {
+      "sku": "headphones_wireless_001",
+      "name": "Nimbus Wireless Headphones",
+      "query": "wireless headphones",
+      "quantity": 1,
+      "unit_price_paise": 249900
+    },
+    {
+      "sku": "bottle_steel_001",
+      "name": "Trail Steel Water Bottle",
+      "query": "steel water bottle",
+      "quantity": 1,
+      "unit_price_paise": 69900
+    },
+    {
+      "sku": "backpack_laptop_001",
+      "name": "Metro Laptop Backpack",
+      "query": "laptop backpack",
+      "quantity": 1,
+      "unit_price_paise": 179900
+    }
+  ],
+  "expected_subtotal_paise": 499700,
+  "require_distinct_searches": true,
+  "require_cart_open": true,
+  "max_steps": 18
+}
