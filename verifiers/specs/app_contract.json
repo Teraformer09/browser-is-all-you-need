@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0",
+  "package": "com.primeintellect.shoppingdemo",
+  "state_schema_version": 1,
+  "simulated": true,
+  "state_provider": "content://com.primeintellect.shoppingdemo.verifier/state",
+  "preferences": "shopping_state.xml",
+  "catalog": [
+    {
+      "sku": "headphones_wireless_001",
+      "name": "Nimbus Wireless Headphones",
+      "detail": "Over-ear | Bluetooth | Midnight black",
+      "category": "Electronics",
+      "unit_price_paise": 249900
+    },
+    {
+      "sku": "headphones_wired_001",
+      "name": "Nimbus Wired Headphones",
+      "detail": "Over-ear | 3.5 mm cable | Graphite",
+      "category": "Electronics",
+      "unit_price_paise": 79900
+    },
+    {
+      "sku": "bottle_steel_001",
+      "name": "Trail Steel Water Bottle",
+      "detail": "1 litre | Stainless steel | Ocean blue",
+      "category": "Outdoors",
+      "unit_price_paise": 69900
+    },
+    {
+      "sku": "bottle_sport_001",
+      "name": "Trail Sports Water Bottle",
+      "detail": "750 ml | Lightweight | Mint",
+      "category": "Outdoors",
+      "unit_price_paise": 39900
+    },
+    {
+      "sku": "backpack_laptop_001",
+      "name": "Metro Laptop Backpack",
+      "detail": "15.6 inch | Padded sleeve | Navy",
+      "category": "Bags",
+      "unit_price_paise": 179900
+    },
+    {
+      "sku": "backpack_daypack_001",
+      "name": "Metro Everyday Daypack",
+      "detail": "12 litre | Compact | Stone",
+      "category": "Bags",
+      "unit_price_paise": 89900
+    }
+  ],
+  "evidence_channels": [
+    "persisted_state",
+    "runtime_probe",
+    "journal_replay",
+    "accessibility",
+    "screenshot_ocr"
+  ],
+  "correlation_notice": "Channels share the app and state/rendering paths; they are not independent proofs."
+}

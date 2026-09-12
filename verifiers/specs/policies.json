@@ -1,0 +1,501 @@
+{
+  "schema_version": "1.0",
+  "task_id": "amazon_cart_001",
+  "package": "com.primeintellect.shoppingdemo",
+  "scoring": {
+    "status_to_reward": {
+      "PASS": 1,
+      "INVALID": 0,
+      "FAIL": -1
+    },
+    "required_policy_count": 15,
+    "required_verifier_count": 5,
+    "base_score": 0.5,
+    "increment_per_pass": 0.1,
+    "pass_threshold": 0.7,
+    "comparison": ">=",
+    "aggregation": "any_fail_then_any_invalid_then_pass"
+  },
+  "policies": [
+    {
+      "policy_id": "V1",
+      "claim": "Task specification, compatible app, registry and required capabilities are usable.",
+      "scope": "episode_history",
+      "verifiers": [
+        {
+          "id": "V1.V1",
+          "implementation": "verify_V1_model_trace",
+          "method": "model_trace"
+        },
+        {
+          "id": "V1.V2",
+          "implementation": "verify_V1_action_records",
+          "method": "action_records"
+        },
+        {
+          "id": "V1.V3",
+          "implementation": "verify_V1_dispatch_receipts",
+          "method": "dispatch_receipts"
+        },
+        {
+          "id": "V1.V4",
+          "implementation": "verify_V1_adb_trace",
+          "method": "adb_trace"
+        },
+        {
+          "id": "V1.V5",
+          "implementation": "verify_V1_app_event_chain",
+          "method": "app_event_chain"
+        }
+      ]
+    },
+    {
+      "policy_id": "V2",
+      "claim": "Evidence is fresh, intact and attributable to this episode.",
+      "scope": "episode_history",
+      "verifiers": [
+        {
+          "id": "V2.V1",
+          "implementation": "verify_V2_model_trace",
+          "method": "model_trace"
+        },
+        {
+          "id": "V2.V2",
+          "implementation": "verify_V2_action_records",
+          "method": "action_records"
+        },
+        {
+          "id": "V2.V3",
+          "implementation": "verify_V2_dispatch_receipts",
+          "method": "dispatch_receipts"
+        },
+        {
+          "id": "V2.V4",
+          "implementation": "verify_V2_adb_trace",
+          "method": "adb_trace"
+        },
+        {
+          "id": "V2.V5",
+          "implementation": "verify_V2_app_event_chain",
+          "method": "app_event_chain"
+        }
+      ]
+    },
+    {
+      "policy_id": "V15",
+      "claim": "Actor discipline: no rejected actions, no consecutive duplicate actions, no repeated finish attempts, and no focus tap immediately before typing.",
+      "scope": "episode_history",
+      "verifiers": [
+        {
+          "id": "V15.V1",
+          "implementation": "verify_V15_model_trace",
+          "method": "model_trace"
+        },
+        {
+          "id": "V15.V2",
+          "implementation": "verify_V15_action_records",
+          "method": "action_records"
+        },
+        {
+          "id": "V15.V3",
+          "implementation": "verify_V15_dispatch_receipts",
+          "method": "dispatch_receipts"
+        },
+        {
+          "id": "V15.V4",
+          "implementation": "verify_V15_adb_trace",
+          "method": "adb_trace"
+        },
+        {
+          "id": "V15.V5",
+          "implementation": "verify_V15_app_event_chain",
+          "method": "app_event_chain"
+        }
+      ]
+    },
+    {
+      "policy_id": "G1",
+      "claim": "Every actor response is exactly one supported, correctly typed action object.",
+      "scope": "episode_history",
+      "verifiers": [
+        {
+          "id": "G1.V1",
+          "implementation": "verify_G1_model_trace",
+          "method": "model_trace"
+        },
+        {
+          "id": "G1.V2",
+          "implementation": "verify_G1_action_records",
+          "method": "action_records"
+        },
+        {
+          "id": "G1.V3",
+          "implementation": "verify_G1_dispatch_receipts",
+          "method": "dispatch_receipts"
+        },
+        {
+          "id": "G1.V4",
+          "implementation": "verify_G1_adb_trace",
+          "method": "adb_trace"
+        },
+        {
+          "id": "G1.V5",
+          "implementation": "verify_G1_app_event_chain",
+          "method": "app_event_chain"
+        }
+      ]
+    },
+    {
+      "policy_id": "G2",
+      "claim": "Every actor action uses only the allowed action and target contract.",
+      "scope": "episode_history",
+      "verifiers": [
+        {
+          "id": "G2.V1",
+          "implementation": "verify_G2_model_trace",
+          "method": "model_trace"
+        },
+        {
+          "id": "G2.V2",
+          "implementation": "verify_G2_action_records",
+          "method": "action_records"
+        },
+        {
+          "id": "G2.V3",
+          "implementation": "verify_G2_dispatch_receipts",
+          "method": "dispatch_receipts"
+        },
+        {
+          "id": "G2.V4",
+          "implementation": "verify_G2_adb_trace",
+          "method": "adb_trace"
+        },
+        {
+          "id": "G2.V5",
+          "implementation": "verify_G2_app_event_chain",
+          "method": "app_event_chain"
+        }
+      ]
+    },
+    {
+      "policy_id": "G3",
+      "claim": "Every targeted UI component existed and was interactable at action time.",
+      "scope": "episode_history",
+      "verifiers": [
+        {
+          "id": "G3.V1",
+          "implementation": "verify_G3_model_trace",
+          "method": "model_trace"
+        },
+        {
+          "id": "G3.V2",
+          "implementation": "verify_G3_action_records",
+          "method": "action_records"
+        },
+        {
+          "id": "G3.V3",
+          "implementation": "verify_G3_dispatch_receipts",
+          "method": "dispatch_receipts"
+        },
+        {
+          "id": "G3.V4",
+          "implementation": "verify_G3_adb_trace",
+          "method": "adb_trace"
+        },
+        {
+          "id": "G3.V5",
+          "implementation": "verify_G3_app_event_chain",
+          "method": "app_event_chain"
+        }
+      ]
+    },
+    {
+      "policy_id": "G4",
+      "claim": "Every permitted action has a successful low-level execution receipt, separate from app acceptance.",
+      "scope": "episode_history",
+      "verifiers": [
+        {
+          "id": "G4.V1",
+          "implementation": "verify_G4_model_trace",
+          "method": "model_trace"
+        },
+        {
+          "id": "G4.V2",
+          "implementation": "verify_G4_action_records",
+          "method": "action_records"
+        },
+        {
+          "id": "G4.V3",
+          "implementation": "verify_G4_dispatch_receipts",
+          "method": "dispatch_receipts"
+        },
+        {
+          "id": "G4.V4",
+          "implementation": "verify_G4_adb_trace",
+          "method": "adb_trace"
+        },
+        {
+          "id": "G4.V5",
+          "implementation": "verify_G4_app_event_chain",
+          "method": "app_event_chain"
+        }
+      ]
+    },
+    {
+      "policy_id": "S1",
+      "claim": "Task-bound add/increase selections refer only to requested products; queries may vary.",
+      "scope": "episode_history",
+      "verifiers": [
+        {
+          "id": "S1.V1",
+          "implementation": "verify_S1_model_trace",
+          "method": "model_trace"
+        },
+        {
+          "id": "S1.V2",
+          "implementation": "verify_S1_action_records",
+          "method": "action_records"
+        },
+        {
+          "id": "S1.V3",
+          "implementation": "verify_S1_dispatch_receipts",
+          "method": "dispatch_receipts"
+        },
+        {
+          "id": "S1.V4",
+          "implementation": "verify_S1_adb_trace",
+          "method": "adb_trace"
+        },
+        {
+          "id": "S1.V5",
+          "implementation": "verify_S1_app_event_chain",
+          "method": "app_event_chain"
+        }
+      ]
+    },
+    {
+      "policy_id": "T1",
+      "claim": "The final cart contains exactly the three requested product identities, with no extras.",
+      "scope": "current_state_at_actor_stop",
+      "verifiers": [
+        {
+          "id": "T1.V1",
+          "implementation": "verify_T1_persisted_state",
+          "method": "persisted_state"
+        },
+        {
+          "id": "T1.V2",
+          "implementation": "verify_T1_runtime_probe",
+          "method": "runtime_probe"
+        },
+        {
+          "id": "T1.V3",
+          "implementation": "verify_T1_journal_replay",
+          "method": "journal_replay"
+        },
+        {
+          "id": "T1.V4",
+          "implementation": "verify_T1_accessibility",
+          "method": "accessibility"
+        },
+        {
+          "id": "T1.V5",
+          "implementation": "verify_T1_screenshot_ocr",
+          "method": "screenshot_ocr"
+        }
+      ]
+    },
+    {
+      "policy_id": "T2",
+      "claim": "Each of the three requested cart products has quantity exactly one.",
+      "scope": "current_state_at_actor_stop",
+      "verifiers": [
+        {
+          "id": "T2.V1",
+          "implementation": "verify_T2_persisted_state",
+          "method": "persisted_state"
+        },
+        {
+          "id": "T2.V2",
+          "implementation": "verify_T2_runtime_probe",
+          "method": "runtime_probe"
+        },
+        {
+          "id": "T2.V3",
+          "implementation": "verify_T2_journal_replay",
+          "method": "journal_replay"
+        },
+        {
+          "id": "T2.V4",
+          "implementation": "verify_T2_accessibility",
+          "method": "accessibility"
+        },
+        {
+          "id": "T2.V5",
+          "implementation": "verify_T2_screenshot_ocr",
+          "method": "screenshot_ocr"
+        }
+      ]
+    },
+    {
+      "policy_id": "T3",
+      "claim": "All three requested products retain their expected unit prices in INR.",
+      "scope": "current_state_at_actor_stop",
+      "verifiers": [
+        {
+          "id": "T3.V1",
+          "implementation": "verify_T3_persisted_state",
+          "method": "persisted_state"
+        },
+        {
+          "id": "T3.V2",
+          "implementation": "verify_T3_runtime_probe",
+          "method": "runtime_probe"
+        },
+        {
+          "id": "T3.V3",
+          "implementation": "verify_T3_journal_replay",
+          "method": "journal_replay"
+        },
+        {
+          "id": "T3.V4",
+          "implementation": "verify_T3_accessibility",
+          "method": "accessibility"
+        },
+        {
+          "id": "T3.V5",
+          "implementation": "verify_T3_screenshot_ocr",
+          "method": "screenshot_ocr"
+        }
+      ]
+    },
+    {
+      "policy_id": "T4",
+      "claim": "Each requested product was added from its own distinct committed search result.",
+      "scope": "current_state_at_actor_stop",
+      "verifiers": [
+        {
+          "id": "T4.V1",
+          "implementation": "verify_T4_persisted_state",
+          "method": "persisted_state"
+        },
+        {
+          "id": "T4.V2",
+          "implementation": "verify_T4_runtime_probe",
+          "method": "runtime_probe"
+        },
+        {
+          "id": "T4.V3",
+          "implementation": "verify_T4_journal_replay",
+          "method": "journal_replay"
+        },
+        {
+          "id": "T4.V4",
+          "implementation": "verify_T4_accessibility",
+          "method": "accessibility"
+        },
+        {
+          "id": "T4.V5",
+          "implementation": "verify_T4_screenshot_ocr",
+          "method": "screenshot_ocr"
+        }
+      ]
+    },
+    {
+      "policy_id": "T5",
+      "claim": "Cart counters, quantities, line totals and the expected INR 4997 subtotal are consistent.",
+      "scope": "current_state_at_actor_stop",
+      "verifiers": [
+        {
+          "id": "T5.V1",
+          "implementation": "verify_T5_persisted_state",
+          "method": "persisted_state"
+        },
+        {
+          "id": "T5.V2",
+          "implementation": "verify_T5_runtime_probe",
+          "method": "runtime_probe"
+        },
+        {
+          "id": "T5.V3",
+          "implementation": "verify_T5_journal_replay",
+          "method": "journal_replay"
+        },
+        {
+          "id": "T5.V4",
+          "implementation": "verify_T5_accessibility",
+          "method": "accessibility"
+        },
+        {
+          "id": "T5.V5",
+          "implementation": "verify_T5_screenshot_ocr",
+          "method": "screenshot_ocr"
+        }
+      ]
+    },
+    {
+      "policy_id": "T6",
+      "claim": "The actor ends on the simulated cart review screen.",
+      "scope": "current_state_at_actor_stop",
+      "verifiers": [
+        {
+          "id": "T6.V1",
+          "implementation": "verify_T6_persisted_state",
+          "method": "persisted_state"
+        },
+        {
+          "id": "T6.V2",
+          "implementation": "verify_T6_runtime_probe",
+          "method": "runtime_probe"
+        },
+        {
+          "id": "T6.V3",
+          "implementation": "verify_T6_journal_replay",
+          "method": "journal_replay"
+        },
+        {
+          "id": "T6.V4",
+          "implementation": "verify_T6_accessibility",
+          "method": "accessibility"
+        },
+        {
+          "id": "T6.V5",
+          "implementation": "verify_T6_screenshot_ocr",
+          "method": "screenshot_ocr"
+        }
+      ]
+    },
+    {
+      "policy_id": "T7",
+      "claim": "The required action budget, acceptance and permitted-action history are satisfied.",
+      "scope": "episode_history",
+      "verifiers": [
+        {
+          "id": "T7.V1",
+          "implementation": "verify_T7_model_trace",
+          "method": "model_trace"
+        },
+        {
+          "id": "T7.V2",
+          "implementation": "verify_T7_action_records",
+          "method": "action_records"
+        },
+        {
+          "id": "T7.V3",
+          "implementation": "verify_T7_dispatch_receipts",
+          "method": "dispatch_receipts"
+        },
+        {
+          "id": "T7.V4",
+          "implementation": "verify_T7_adb_trace",
+          "method": "adb_trace"
+        },
+        {
+          "id": "T7.V5",
+          "implementation": "verify_T7_app_event_chain",
+          "method": "app_event_chain"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "rubric_id": "peach_strict_v1",
+  "legacy_policy_votes": "diagnostic_only",
+  "status_to_reward": {
+    "PASS": 1,
+    "INVALID": 0,
+    "FAIL": -1
+  },
+  "required_checks": [
+    "contract",
+    "evidence_integrity",
+    "timeline",
+    "action_audit",
+    "cart_lineage",
+    "exact_outcome"
+  ],
+  "untrusted_required_evidence": "INVALID",
+  "assessable_required_failure": "FAIL",
+  "all_required_checks_pass": "PASS",
+  "optional_checks": [
+    "visible_cart_summary"
+  ],
+  "goal_changes": false,
+  "performance_target_changes_scoring": false,
+  "evidence_notice": "SQLite, provider and journal are correlated. Cross-checking them detects disagreement, not independent ground truth. PNG hashes establish file integrity, not visual semantics.",
+  "aggregation": "trusted_fail_then_invalid_then_pass",
+  "cart_lineage": "Each required SKU's current zero-to-positive cart interval must begin in a distinct matching search context; removal/zero clears that link.",
+  "semantic_contract": "An attempted extra-product add, malformed/disallowed action, app rejection or premature finish fails the action contract even if the final cart is later corrected.",
+  "policy_coverage": {
+    "V1": [
+      "contract"
+    ],
+    "V2": [
+      "evidence_integrity",
+      "timeline"
+    ],
+    "G1": [
+      "action_audit"
+    ],
+    "G2": [
+      "action_audit"
+    ],
+    "G3": [
+      "action_audit"
+    ],
+    "G4": [
+      "action_audit"
+    ],
+    "S1": [
+      "action_audit"
+    ],
+    "T1": [
+      "exact_outcome"
+    ],
+    "T2": [
+      "exact_outcome"
+    ],
+    "T3": [
+      "exact_outcome"
+    ],
+    "T4": [
+      "cart_lineage",
+      "exact_outcome"
+    ],
+    "T5": [
+      "exact_outcome"
+    ],
+    "T6": [
+      "exact_outcome"
+    ],
+    "T7": [
+      "timeline",
+      "action_audit"
+    ]
+  }
+}
+

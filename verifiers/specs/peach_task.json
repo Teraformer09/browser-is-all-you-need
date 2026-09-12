@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "task_id": "amazon_cart_001",
+  "variant": "peach_sqlite_v1",
+  "package": "com.primeintellect.amazonuidemo",
+  "goal": "Search separately for Nimbus Wireless Headphones, Trail Steel Water Bottle, and Metro Laptop Backpack. Add exactly one of each to the cart, with no other products, then open the cart. Do not check out or place an order.",
+  "currency": "INR",
+  "simulated": true,
+  "expected_items": [
+    {"sku":"DC001","name":"Nimbus Wireless Headphones","query":"wireless headphones","quantity":1,"unit_price_paise":249900},
+    {"sku":"DC002","name":"Trail Steel Water Bottle","query":"steel water bottle","quantity":1,"unit_price_paise":69900},
+    {"sku":"DC003","name":"Metro Laptop Backpack","query":"laptop backpack","quantity":1,"unit_price_paise":179900}
+  ],
+  "expected_subtotal_paise": 499700,
+  "require_distinct_searches": true,
+  "require_cart_open": true,
+  "max_steps": 18,
+  "max_item_quantity": 99,
+  "evidence_channels": ["sqlite_file", "read_only_provider", "mutation_journal", "accessibility", "screenshot_ocr"],
+  "correlation_notice": "SQLite, its read-only provider and the journal share the same app/database; they are not independent proofs."
+}

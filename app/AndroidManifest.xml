@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.primeintellect.amazonuidemo" android:versionCode="3" android:versionName="2.1">
+    <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="34" />
+    <queries>
+        <intent><action android:name="android.media.action.IMAGE_CAPTURE" /></intent>
+        <intent><action android:name="android.speech.action.RECOGNIZE_SPEECH" /></intent>
+        <intent><action android:name="com.google.zxing.client.android.SCAN" /></intent>
+    </queries>
+    <!-- No network, microphone, camera, payment or storage permission is requested.
+         Camera/voice/scan are delegated to a user-selected device app. -->
+    <application android:theme="@style/AppTheme" android:label="DemoCart Shopping"
+        android:icon="@drawable/ic_cart" android:allowBackup="false" android:debuggable="true">
+        <provider android:name=".VerifierStateProvider" android:authorities="com.primeintellect.amazonuidemo.verifier"
+            android:exported="true" android:readPermission="android.permission.DUMP" android:grantUriPermissions="false" />
+        <activity android:name=".MainActivity" android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+
