@@ -1,0 +1,17 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
+    android:orientation="vertical" android:gravity="center_horizontal" android:clickable="true" android:focusable="true"
+    android:background="?android:attr/selectableItemBackground">
+    <View android:id="@+id/navIndicator" android:layout_width="28dp" android:layout_height="3dp"
+        android:background="@drawable/bg_active" android:visibility="invisible" />
+    <FrameLayout android:layout_width="44dp" android:layout_height="35dp" android:layout_marginTop="4dp">
+        <ImageView android:id="@+id/navIcon" android:layout_width="24dp" android:layout_height="24dp"
+            android:layout_gravity="center" android:importantForAccessibility="no" />
+        <TextView android:id="@+id/navBadge" android:layout_width="18dp" android:layout_height="18dp"
+            android:layout_gravity="top|end" android:gravity="center" android:background="@drawable/bg_badge"
+            android:textColor="#0F1111" android:textSize="10sp" android:textStyle="bold"
+            android:visibility="gone" android:importantForAccessibility="no" />
+    </FrameLayout>
+    <TextView android:id="@+id/navLabel" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:textSize="10sp" android:textColor="#565959" android:includeFontPadding="false" />
+</LinearLayout>

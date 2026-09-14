@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "rubric_id": "peach_action_budget_v1",
+  "task_version": "0.1.0",
+  "policy_ids": ["ITEM.DC001", "ITEM.DC002", "ITEM.DC003"],
+  "correctness_checks": ["query_entry", "search_submission", "cart_addition"],
+  "baseline": "All three correctness checks for this item must PASS before awarding 0.5.",
+  "policy_cutoff_tenths": 9,
+  "optimizer_scope": "episode_shared",
+  "optimizers": [
+    {"id": "O1", "metric": "text_entries", "maximum": 3},
+    {"id": "O2", "metric": "taps", "maximum": 7},
+    {"id": "O3", "metric": "total_actions", "maximum": 11},
+    {"id": "O4", "metric": "completion_tokens", "maximum": 165},
+    {"id": "O5", "metric": "model_request_seconds", "maximum": 13}
+  ],
+  "comparison": "<=",
+  "status_to_reward": {"PASS": 1, "INVALID": 0, "FAIL": -1},
+  "all_optimizers_invalid": "INVALID",
+  "aggregation": "required_FAIL_then_INVALID_then_PASS",
+  "counting": {
+    "actions": "All actor actions, including rejected actions and finish; internal ADB focus/typing commands are not extra actor actions.",
+    "tokens": "Provider-reported generated completion tokens including reported reasoning; include empty-response retries. Missing usage is INVALID, never zero.",
+    "latency": "Sum of controller-measured HTTP request spans, including retries; excludes boot, ADB, screenshots and retry backoff. It includes network/provider delay and is not pure model compute time.",
+    "time_cap_is_timeout": false
+  },
+  "correlation_notice": "The five limits are correlated run-level budget conditions, not five independent optimization domains. Compute them once and reference the same results in three item policies. SQLite, journal and UI evidence are also correlated.",
+  "calibration_notice": "Chosen retrospectively using twelve historical runs. No future success count, including one PASS in six runs, is guaranteed. Freeze before new evaluation."
+}

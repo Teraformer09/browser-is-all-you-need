@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Focused fixture reconstructed from the two native nodes in Prime sample
+     mdgvdtqkzoum9s51dols4b58/hosted-1, after action 18. Not an original UI dump.
+     Screenshot SHA: 46d2edd30d8ce736eddb5678a49845558c3245bff061d26470feebab6ff150d5. -->
+<hierarchy>
+    <node package="com.primeintellect.amazonuidemo" resource-id="" text="Go to cart" content-desc="Go to cart" enabled="true" clickable="true" class="android.widget.Button" bounds="[37,1871][1043,1997]" />
+    <node package="com.primeintellect.amazonuidemo" resource-id="" text="" content-desc="Cart tab, 3 items" enabled="true" clickable="true" class="android.widget.LinearLayout" bounds="[540,2111][720,2146]" />
+</hierarchy>

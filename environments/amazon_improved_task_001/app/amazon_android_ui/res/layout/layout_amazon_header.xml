@@ -1,0 +1,36 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="54dp"
+        android:paddingStart="14dp" android:paddingEnd="6dp" android:gravity="center_vertical">
+        <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="48dp"
+            android:background="@drawable/bg_search_capsule" android:elevation="1dp" android:gravity="center_vertical">
+            <ImageButton android:id="@+id/btnSearch" style="@style/IconButton"
+                android:src="@drawable/ic_search" android:contentDescription="Execute search" />
+            <AutoCompleteTextView android:id="@+id/etSearchBox" android:layout_width="0dp"
+                android:layout_height="match_parent" android:layout_weight="1" android:background="@null"
+                android:hint="Search or ask a question" android:singleLine="true" android:completionThreshold="1"
+                android:textSize="14sp" android:textColor="#0F1111" android:textColorHint="#565959"
+                android:imeOptions="actionSearch" android:inputType="text" android:selectAllOnFocus="true"
+                android:importantForAutofill="no" android:padding="0dp" />
+            <ImageButton android:id="@+id/btnLensSearch" style="@style/IconButton"
+                android:src="@drawable/ic_camera_lens" android:contentDescription="Lens demo: camera or manual matching" />
+            <ImageButton android:id="@+id/btnVoiceSearch" style="@style/IconButton"
+                android:src="@drawable/ic_mic" android:contentDescription="Voice search" />
+        </LinearLayout>
+        <ImageButton android:id="@+id/btnQrScanner" style="@style/IconButton"
+            android:src="@drawable/ic_qr_code" android:contentDescription="Scan or enter a demo product code" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/btnDeliverLocation" android:layout_width="match_parent"
+        android:layout_height="44dp" android:layout_marginStart="14dp" android:layout_marginEnd="14dp"
+        android:layout_marginTop="3dp" android:layout_marginBottom="7dp" android:paddingStart="12dp"
+        android:paddingEnd="12dp" android:gravity="center_vertical" android:background="@drawable/bg_address"
+        android:clickable="true" android:focusable="true" android:contentDescription="Choose delivery location">
+        <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_location_pin"
+            android:importantForAccessibility="no" />
+        <TextView android:id="@+id/tvDeliverTo" android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="wrap_content" android:layout_marginStart="8dp" android:singleLine="true"
+            android:ellipsize="end" android:textColor="#0F1111" android:textSize="12sp" />
+        <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@drawable/ic_down_arrow"
+            android:importantForAccessibility="no" />
+    </LinearLayout>
+</LinearLayout>

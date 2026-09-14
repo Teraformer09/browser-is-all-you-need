@@ -1,0 +1,35 @@
+[project]
+name = "amazon-improved-task-001"
+version = "0.1.2"
+description = "DemoCart with nine reusable action checks, five shared episode budgets, cutoff 0.9, and per-action evidence."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["verifiers==0.3.1", "datasets==5.0.1", "prime-sandboxes==0.2.42", "prime-tunnel==0.1.11", "tiktoken==0.12.0"]
+
+[project.optional-dependencies]
+dev = ["pytest==8.4.2"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["amazon_improved_task_001"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"pyproject.toml" = "amazon_improved_task_001/_bootstrap/pyproject.toml"
+"README.md" = "amazon_improved_task_001/_bootstrap/README.md"
+"scripts/provision_android.sh" = "amazon_improved_task_001/_bootstrap/scripts/provision_android.sh"
+"app/amazon_android_ui/AndroidManifest.xml" = "amazon_improved_task_001/_bootstrap/app/amazon_android_ui/AndroidManifest.xml"
+"app/amazon_android_ui/build_apk.sh" = "amazon_improved_task_001/_bootstrap/app/amazon_android_ui/build_apk.sh"
+"app/amazon_android_ui/src" = "amazon_improved_task_001/_bootstrap/app/amazon_android_ui/src"
+"app/amazon_android_ui/res" = "amazon_improved_task_001/_bootstrap/app/amazon_android_ui/res"
+
+[tool.hatch.build.targets.sdist]
+include = [".gitignore", "app/amazon_android_ui/AndroidManifest.xml", "app/amazon_android_ui/src", "app/amazon_android_ui/res", "app/amazon_android_ui/build_apk.sh", "app/amazon_android_ui/README.md", "amazon_improved_task_001", "scripts", "tests", "IMPLEMENTATION_LOG.md", "README.md", "pyproject.toml", "uv.lock"]
+exclude = ["**/__pycache__", "**/*.pyc", "**/.venv", "**/.local", ".cache", "artifacts", "dist", ".prime"]
+
+[tool.verifiers.eval]
+num_examples = 1
+rollouts_per_example = 1
+max_concurrent = 1

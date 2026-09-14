@@ -1,0 +1,8 @@
+.venv/
+.local/
+.cache/
+dist/
+artifacts/
+.prime/
+__pycache__/
+*.py[cod]

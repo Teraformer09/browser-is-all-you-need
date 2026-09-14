@@ -1,0 +1,10 @@
+# Amazon Improved Task 001 implementation log
+
+| Version | Change | Evidence boundary |
+|---|---|---|
+| 0.1.0 | Created a separate Prime Hub package from the DemoCart action-budget environment. Renamed its Python package, retained the Android app and verifier logic, made software emulation the hosted default, and preserved the public read-only viewer for capped runs. | This is a new environment identity. Historical `amazon-cart-2` releases and evaluation results are not part of this package. |
+| 0.1.0 | Declared the package as legacy Verifiers V0 at publication time. | The package exports `load_environment`; it does not export a V1 `Taskset`. Publishing without `--runtime v0` is invalid. |
+| 0.1.0 | Pinned the headless publisher to `prime==0.6.35`, whose `env push` supports `--runtime v0`. | Package tests and installed-loader checks do not prove that a future Prime-hosted Android run will succeed; that requires a separate smoke evaluation. |
+| 0.1.0 | Validation completed: 333 tests passed, 1 skipped; compileall passed; wheel and sdist built; a clean installed wheel loaded through the V0 API with software emulation and no resource launch. | The remaining unverified boundary is an actual Prime-hosted smoke evaluation after publication. |
+| 0.1.1 | Removed the top-level `IMPLEMENTATION_LOG.md` from Hatch wheel `force-include`. Prime's hosted source extraction omitted that documentation file, so rebuilding the downloaded source failed before environment loading. The log remains in the repository and source distribution but is no longer a runtime prerequisite. | Evaluation `d1syw5ymjradtw85vv79tv9a` proved only that V0 source pull began and exposed this package-build defect. It did not build Android, boot an emulator, call the model, or test the rubric. |
+| 0.1.2 | Synchronized the runtime version and release guard with `pyproject.toml`; documented the public Prime environment and the repository-level `eval/Amazon_improved_eval.md` report with neutral per-evaluation evidence archives. | Package tests verify version consistency. Historical results are documented without rerunning or reclassifying evaluations. |
