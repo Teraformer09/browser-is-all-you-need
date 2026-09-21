@@ -48,12 +48,12 @@ Both records are public Prime-hosted evaluations. They used `minimax/minimax-m3`
 
 ## Evidence recorded per evaluation
 
-Each completed evaluation has a GitHub-hosted neutral evidence ZIP. The GitHub ZIP contains its authoritative verifier receipt, the screenshot retained in the public sample, and an immutable reference to the real Android MP4 inside the verified Prime controller archive. Credentials and model transcripts are not included.
+Each completed Prime-hosted evaluation has a neutral evidence ZIP stored on GitHub. The GitHub ZIP contains its authoritative verifier receipt, the screenshot retained in the public sample, and an immutable reference to the real Android MP4 inside the verified Prime controller archive. Credentials and model transcripts are not included.
 
 | # | Verdict | GitHub evidence ZIP (SHA-256) | Prime source archive | Android video SHA-256 | Eval |
 |---|---|---|---|---|---|
-| 1 | PASS | [evidence.zip (`9dde88b6b1e7cf1feaba9fd15c4116d3d4928962f36e87acf2a2271d282fb7c2`)](https://raw.githubusercontent.com/Teraformer09/browser-is-all-you-need/refs/heads/Android-ADK-Verifiers/eval/evidence/o167mh3pi2u9lfnzjd3h54qi/evidence.zip) | `beb7fa36bd907396a68176df20416d38ed41de6f8cd9a12aca63b5d1b75e0d88` | `35d93738bf0cafa73e89c7fc941e9213748ec7bab014346d93f1fa1b55fc182e` | [open](https://app.primeintellect.ai/dashboard/evaluations/o167mh3pi2u9lfnzjd3h54qi) |
-| 2 | FAIL | [evidence.zip (`b99b2350fb37c6669cd8bbe2dc9942f7dc770a2d2429497cb498075c0b9cef2a`)](https://raw.githubusercontent.com/Teraformer09/browser-is-all-you-need/refs/heads/Android-ADK-Verifiers/eval/evidence/bsvz9uou86hdthch6vi7pcgg/evidence.zip) | `9f72a817ea32731b35f8f6da5192983881bd5fe93229aacdb798d4af237832d2` | `3fdee77200190513680672156e2f13e6085c0ee241b3d506202d1813f63c8361` | [open](https://app.primeintellect.ai/dashboard/evaluations/bsvz9uou86hdthch6vi7pcgg) |
+| 1 | PASS | [evidence.zip (`9dde88b6b1e7cf1feaba9fd15c4116d3d4928962f36e87acf2a2271d282fb7c2`)](https://raw.githubusercontent.com/Teraformer09/browser-is-all-you-need/refs/heads/Android-ADK-Verifiers/eval/hosted/amazon_improved_task_002/evidence/o167mh3pi2u9lfnzjd3h54qi/evidence.zip) | `beb7fa36bd907396a68176df20416d38ed41de6f8cd9a12aca63b5d1b75e0d88` | `35d93738bf0cafa73e89c7fc941e9213748ec7bab014346d93f1fa1b55fc182e` | [open](https://app.primeintellect.ai/dashboard/evaluations/o167mh3pi2u9lfnzjd3h54qi) |
+| 2 | FAIL | [evidence.zip (`b99b2350fb37c6669cd8bbe2dc9942f7dc770a2d2429497cb498075c0b9cef2a`)](https://raw.githubusercontent.com/Teraformer09/browser-is-all-you-need/refs/heads/Android-ADK-Verifiers/eval/hosted/amazon_improved_task_002/evidence/bsvz9uou86hdthch6vi7pcgg/evidence.zip) | `9f72a817ea32731b35f8f6da5192983881bd5fe93229aacdb798d4af237832d2` | `3fdee77200190513680672156e2f13e6085c0ee241b3d506202d1813f63c8361` | [open](https://app.primeintellect.ai/dashboard/evaluations/bsvz9uou86hdthch6vi7pcgg) |
 
 ### What each GitHub evidence ZIP contains
 
